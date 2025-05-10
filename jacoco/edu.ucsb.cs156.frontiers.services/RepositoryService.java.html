@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RepositoryService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">team01</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs156.frontiers.services</a> &gt; <span class="el_source">RepositoryService.java</span></div><h1>RepositoryService.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs156.frontiers.services;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.ucsb.cs156.frontiers.entities.RosterStudent;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
+
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import java.util.HashMap;
+import java.util.Map;
+
+@Service
+public class RepositoryService {
+    private final JwtService  jwtService;
+    private final RestTemplate restTemplate;
+    private final ObjectMapper mapper;
+
+<span class="fc" id="L23">    public RepositoryService(JwtService jwtService, RestTemplateBuilder restTemplateBuilder, ObjectMapper mapper) {</span>
+<span class="fc" id="L24">        this.jwtService = jwtService;</span>
+<span class="fc" id="L25">        this.restTemplate = restTemplateBuilder.build();</span>
+<span class="fc" id="L26">        this.mapper = mapper;</span>
+<span class="fc" id="L27">    }</span>
+
+    /**
+     * Creates a single student repository if it doesn't already exist, and provisions access to the repository by that student
+     * @param installationId ID of the installation to act as
+     * @param orgName Name of the organization attached to a particular installation
+     * @param student RosterStudent of the student the repository should be created for
+     * @param repoPrefix Name of the project or assignment. Used to title the repository, in the format repoPrefix-githubLogin
+     * @param isPrivate Whether the repository is private or not
+     */
+    public void createStudentRepository(String installationId, String orgName, RosterStudent student, String repoPrefix, Boolean isPrivate) throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException {
+<span class="fc" id="L38">        String newRepoName = repoPrefix+&quot;-&quot;+student.getUser().getGithubLogin();</span>
+<span class="fc" id="L39">        String token = jwtService.getInstallationToken(installationId);</span>
+<span class="fc" id="L40">        String existenceEndpoint = &quot;https://api.github.com/repos/&quot;+orgName+&quot;/&quot;+newRepoName;</span>
+<span class="fc" id="L41">        String createEndpoint = &quot;https://api.github.com/orgs/&quot;+orgName+&quot;/repos&quot;;</span>
+<span class="fc" id="L42">        String provisionEndpoint = &quot;https://api.github.com/repos/&quot;+orgName+&quot;/&quot;+newRepoName+&quot;/collaborators/&quot;+student.getUser().getGithubLogin();</span>
+
+<span class="fc" id="L44">        HttpHeaders existenceHeaders = new HttpHeaders();</span>
+<span class="fc" id="L45">        existenceHeaders.add(&quot;Authorization&quot;, &quot;Bearer &quot; + token);</span>
+<span class="fc" id="L46">        existenceHeaders.add(&quot;Accept&quot;, &quot;application/vnd.github+json&quot;);</span>
+<span class="fc" id="L47">        existenceHeaders.add(&quot;X-GitHub-Api-Version&quot;, &quot;2022-11-28&quot;);</span>
+
+<span class="fc" id="L49">        HttpEntity&lt;String&gt; existenceEntity = new HttpEntity&lt;&gt;(existenceHeaders);</span>
+
+        try {
+<span class="fc" id="L52">            restTemplate.exchange(existenceEndpoint, HttpMethod.GET, existenceEntity, String.class);</span>
+<span class="fc" id="L53">        } catch(HttpClientErrorException e){</span>
+<span class="fc bfc" id="L54" title="All 2 branches covered.">            if(e.getStatusCode().equals(HttpStatus.NOT_FOUND)){</span>
+<span class="fc" id="L55">                HttpHeaders createHeaders = new HttpHeaders();</span>
+<span class="fc" id="L56">                createHeaders.add(&quot;Authorization&quot;, &quot;Bearer &quot; + token);</span>
+<span class="fc" id="L57">                createHeaders.add(&quot;Accept&quot;, &quot;application/vnd.github+json&quot;);</span>
+<span class="fc" id="L58">                createHeaders.add(&quot;X-GitHub-Api-Version&quot;, &quot;2022-11-28&quot;);</span>
+
+<span class="fc" id="L60">                Map&lt;String, Object&gt; body  = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L61">                body.put(&quot;name&quot;, newRepoName);</span>
+<span class="fc" id="L62">                body.put(&quot;private&quot;,  isPrivate);</span>
+<span class="fc" id="L63">                String bodyAsJson =  mapper.writeValueAsString(body);</span>
+
+<span class="fc" id="L65">                HttpEntity&lt;String&gt; createEntity = new HttpEntity&lt;&gt;(bodyAsJson, createHeaders);</span>
+
+<span class="fc" id="L67">                restTemplate.exchange(createEndpoint, HttpMethod.POST, createEntity, String.class);</span>
+<span class="fc" id="L68">                Map&lt;String, Object&gt; provisionBody  = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L69">                provisionBody.put(&quot;permission&quot;, &quot;admin&quot;);</span>
+<span class="fc" id="L70">                String provisionAsJson =  mapper.writeValueAsString(provisionBody);</span>
+
+<span class="fc" id="L72">                HttpEntity&lt;String&gt; provisionEntity = new HttpEntity&lt;&gt;(provisionAsJson, createHeaders);</span>
+<span class="fc" id="L73">                restTemplate.exchange(provisionEndpoint, HttpMethod.PUT, provisionEntity, String.class);</span>
+            }
+<span class="fc" id="L75">        }</span>
+
+<span class="fc" id="L77">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ApiController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">team01</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs156.frontiers.controllers</a> &gt; <span class="el_source">ApiController.java</span></div><h1>ApiController.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs156.frontiers.controllers;
+
+import edu.ucsb.cs156.frontiers.errors.NoLinkedOrganizationException;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+import edu.ucsb.cs156.frontiers.errors.EntityNotFoundException;
+import edu.ucsb.cs156.frontiers.models.CurrentUser;
+import edu.ucsb.cs156.frontiers.services.CurrentUserService;
+
+import java.util.Map;
+
+/**
+ * This is an abstract class that provides common functionality for all API controllers.
+ */
+
+<span class="fc" id="L21">@Slf4j</span>
+<span class="fc" id="L22">public abstract class ApiController {</span>
+  @Autowired
+  private CurrentUserService currentUserService;
+
+  /**
+   * This method returns the current user.
+   * @return the current user
+   */
+  protected CurrentUser getCurrentUser() {
+<span class="fc" id="L31">    return currentUserService.getCurrentUser();</span>
+  }
+
+  /**
+   * This method returns a generic message.
+   * @param message the message
+   * @return a map with the message
+   */
+  protected Object genericMessage(String message) {
+<span class="fc" id="L40">    return Map.of(&quot;message&quot;, message);</span>
+  }
+
+  /**
+   * This method handles the EntityNotFoundException.
+   * @param e the exception
+   * @return a map with the type and message of the exception
+   */
+  @ExceptionHandler({ EntityNotFoundException.class })
+  @ResponseStatus(HttpStatus.NOT_FOUND)
+  public Object handleEntityNotFoundException(Throwable e) {
+<span class="fc" id="L51">    return Map.of(</span>
+<span class="fc" id="L52">      &quot;type&quot;, e.getClass().getSimpleName(),</span>
+<span class="fc" id="L53">      &quot;message&quot;, e.getMessage()</span>
+    );
+  }
+
+  /**
+   * This method handles the NoLinkedOrganizationException.
+   * @param e the exception
+   * @return a map with the type and message of the exception
+   */
+  @ExceptionHandler({ NoLinkedOrganizationException.class })
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public Object handleNoLinkedOrgException(Throwable e) {
+<span class="fc" id="L65">    return Map.of(</span>
+<span class="fc" id="L66">            &quot;type&quot;, e.getClass().getSimpleName(),</span>
+<span class="fc" id="L67">            &quot;message&quot;, e.getMessage()</span>
+    );
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

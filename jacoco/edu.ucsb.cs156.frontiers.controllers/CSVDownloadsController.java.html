@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CSVDownloadsController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">team01</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs156.frontiers.controllers</a> &gt; <span class="el_source">CSVDownloadsController.java</span></div><h1>CSVDownloadsController.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs156.frontiers.controllers;
+
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import com.opencsv.bean.StatefulBeanToCsv;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
+
+import com.opencsv.bean.StatefulBeanToCsvBuilder;
+import com.opencsv.exceptions.CsvDataTypeMismatchException;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
+
+import edu.ucsb.cs156.frontiers.entities.Course;
+import edu.ucsb.cs156.frontiers.errors.EntityNotFoundException;
+import edu.ucsb.cs156.frontiers.models.RosterStudentDTO;
+import edu.ucsb.cs156.frontiers.repositories.CourseRepository;
+import edu.ucsb.cs156.frontiers.services.RosterStudentDTOService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
+
+@Tag(name = &quot;CSV Downloads&quot;)
+@RequestMapping(&quot;/api/csv&quot;)
+@RestController
+<span class="fc" id="L40">@Slf4j</span>
+<span class="fc" id="L41">public class CSVDownloadsController extends ApiController {</span>
+
+  @Autowired
+  private CourseRepository courseRepository;
+
+  @Autowired
+  private RosterStudentDTOService rosterStudentDTOService;
+
+  @Operation(summary = &quot;Download CSV File of Roster Students&quot;, description = &quot;Returns a CSV file as a response&quot;, responses = {
+      @ApiResponse(responseCode = &quot;200&quot;, description = &quot;CSV file&quot;, content = @Content(mediaType = &quot;text/csv&quot;, schema = @Schema(type = &quot;string&quot;, format = &quot;binary&quot;))),
+      @ApiResponse(responseCode = &quot;500&quot;, description = &quot;Internal Server Error&quot;)
+  })
+  @GetMapping(value = &quot;/rosterstudents&quot;, produces = &quot;text/csv&quot;)
+  public ResponseEntity&lt;StreamingResponseBody&gt; csvForQuarter(
+      @Parameter(name = &quot;courseId&quot;, description = &quot;course id&quot;, example = &quot;1&quot;) @RequestParam Long courseId)
+      throws EntityNotFoundException, Exception, IOException {
+<span class="fc" id="L57">    Course course = courseRepository.findById(courseId)</span>
+<span class="fc" id="L58">        .orElseThrow(() -&gt; new EntityNotFoundException(Course.class, courseId));</span>
+<span class="fc" id="L59">    StreamingResponseBody stream = (outputStream) -&gt; {</span>
+
+<span class="fc" id="L61">      List&lt;RosterStudentDTO&gt; list = rosterStudentDTOService.getRosterStudentDTOs(courseId);</span>
+<span class="fc" id="L62">      try (Writer writer = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8)) {</span>
+        try {
+<span class="fc" id="L64">          StatefulBeanToCsv&lt;RosterStudentDTO&gt; beanToCsvWriter = rosterStudentDTOService.getStatefulBeanToCSV(writer);</span>
+<span class="fc" id="L65">          beanToCsvWriter.write(list);</span>
+<span class="fc" id="L66">        } catch (CsvDataTypeMismatchException | CsvRequiredFieldEmptyException e) {</span>
+<span class="fc" id="L67">          log.error(&quot;Error writing CSV file&quot;, e);</span>
+<span class="fc" id="L68">          throw new IOException(&quot;Error writing CSV file: &quot; + e.getMessage());</span>
+<span class="fc" id="L69">        }</span>
+      }
+<span class="fc" id="L71">    };</span>
+
+<span class="fc" id="L73">    return ResponseEntity.ok()</span>
+<span class="fc" id="L74">        .contentType(MediaType.parseMediaType(&quot;text/csv; charset=UTF-8&quot;))</span>
+<span class="fc" id="L75">        .header(</span>
+            HttpHeaders.CONTENT_DISPOSITION,
+<span class="fc" id="L77">            String.format(&quot;attachment;filename=%s_roster.csv&quot;, course.getCourseName()))</span>
+<span class="fc" id="L78">        .header(HttpHeaders.CONTENT_TYPE, &quot;text/csv; charset=UTF-8&quot;)</span>
+<span class="fc" id="L79">        .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS, HttpHeaders.CONTENT_DISPOSITION)</span>
+<span class="fc" id="L80">        .body(stream);</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
