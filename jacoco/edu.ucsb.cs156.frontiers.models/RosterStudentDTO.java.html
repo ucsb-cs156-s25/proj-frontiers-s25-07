@@ -32,7 +32,7 @@ public class RosterStudentDTO {
     private String email;
 
     private long userId;
-    private int userGithubId;
+    private Integer userGithubId;
     private String userGithubLogin;
 
     @Enumerated(EnumType.STRING)
@@ -44,22 +44,20 @@ public class RosterStudentDTO {
 
     public static RosterStudentDTO from(RosterStudent student) {
 <span class="fc bfc" id="L46" title="All 2 branches covered.">        long userId = student.getUser() != null ? student.getUser().getId() : 0;</span>
-<span class="fc bfc" id="L47" title="All 2 branches covered.">        int userGithubId = student.getUser() != null ? student.getUser().getGithubId() : 0;</span>
-<span class="fc bfc" id="L48" title="All 2 branches covered.">        String userGithubLogin = student.getUser() != null ? student.getUser().getGithubLogin() : &quot;&quot;;</span>
         
-<span class="fc" id="L50">        return RosterStudentDTO.builder()</span>
-<span class="fc" id="L51">                .id(student.getId())</span>
-<span class="fc" id="L52">                .courseId(student.getCourse().getId())</span>
-<span class="fc" id="L53">                .studentId(student.getStudentId())</span>
-<span class="fc" id="L54">                .firstName(student.getFirstName())</span>
-<span class="fc" id="L55">                .lastName(student.getLastName())</span>
-<span class="fc" id="L56">                .email(student.getEmail())</span>
-<span class="fc" id="L57">                .userId(userId)</span>
-<span class="fc" id="L58">                .userGithubId(userGithubId)</span>
-<span class="fc" id="L59">                .userGithubLogin(userGithubLogin)</span>
-<span class="fc" id="L60">                .rosterStatus(student.getRosterStatus())</span>
-<span class="fc" id="L61">                .orgStatus(student.getOrgStatus())</span>
-<span class="fc" id="L62">                .build();</span>
+<span class="fc" id="L48">        return RosterStudentDTO.builder()</span>
+<span class="fc" id="L49">                .id(student.getId())</span>
+<span class="fc" id="L50">                .courseId(student.getCourse().getId())</span>
+<span class="fc" id="L51">                .studentId(student.getStudentId())</span>
+<span class="fc" id="L52">                .firstName(student.getFirstName())</span>
+<span class="fc" id="L53">                .lastName(student.getLastName())</span>
+<span class="fc" id="L54">                .email(student.getEmail())</span>
+<span class="fc" id="L55">                .userId(userId)</span>
+<span class="fc" id="L56">                .userGithubId(student.getGithubId())</span>
+<span class="fc" id="L57">                .userGithubLogin(student.getGithubLogin())</span>
+<span class="fc" id="L58">                .rosterStatus(student.getRosterStatus())</span>
+<span class="fc" id="L59">                .orgStatus(student.getOrgStatus())</span>
+<span class="fc" id="L60">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
