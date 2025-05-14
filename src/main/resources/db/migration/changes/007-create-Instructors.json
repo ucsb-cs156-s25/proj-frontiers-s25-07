@@ -1,0 +1,43 @@
+{ "databaseChangeLog": [
+    {
+      "changeSet": {
+        "id": "Instructor-1",
+        "author": "Hannya",
+        "preConditions": [
+          {
+            "onFail": "MARK_RAN"
+          },
+          {
+            "not": [
+              {
+                "tableExists": {
+                  "tableName": "INSTRUCTORS"
+                }
+              }
+            ]
+          }
+        ],
+        "changes": [
+          {
+            "createTable": {
+              "columns": [
+                {
+                  "column": {
+                    "constraints": {
+                      "primaryKey": true,
+                      "primaryKeyName": "INSTRUCTORS_PK"
+                    },
+                    "name": "EMAIL",
+                    "type": "VARCHAR(255)"
+                  }
+                }
+              ]
+              ,
+              "tableName": "INSTRUCTORS"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
