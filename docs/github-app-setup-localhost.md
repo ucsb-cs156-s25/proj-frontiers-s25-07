@@ -97,16 +97,3 @@ Next, start your project:
 ```bash
 mvn spring-boot:run
 ```
-
-Now, create a course via swagger-ui. Make note of the ID.
-
-Next, go to the url `http://localhost:8080/api/courses/redirect?courseId=<id>`, where ID is your course's ID.
-
-Select "Install" next to "ucsb-cs156". It must be an organization, not a user, as the API differs for user repositories.
-
-![image](https://github.com/user-attachments/assets/f08c5c1a-efca-4b67-be2f-9c0120099752)
-
-
-Select "All Repositories". Then, select "Install and Authorize." This should take you to your localhost application link. This should redirect you to a blank page, with the url http://localhost:8080/courses/success.
-
-The org name and installation ID should now be visible in the h2 console.

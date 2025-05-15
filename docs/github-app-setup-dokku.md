@@ -101,15 +101,3 @@ Next, start your app.
 ```bash
 dokku ps:rebuild <appname>
 ```
-
-Sign in with Google, then Github to ensure you have a saved account in the Users table. 
-
-
-Now, move back to your Github window, and on the left-hand side, click "Install App".
-![image](https://github.com/user-attachments/assets/b61b180f-a905-4ff2-a4de-b5f423407eff)
-
-Select "Install" next to "ucsb-cs156-s25". It must be an organization, not a user, as the API differs for user repositories.
-
-![image](https://github.com/user-attachments/assets/f08c5c1a-efca-4b67-be2f-9c0120099752)
-
-You've now created your GitHub app and successfully linked a course
