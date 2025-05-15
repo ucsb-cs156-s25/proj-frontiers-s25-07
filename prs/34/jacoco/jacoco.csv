@@ -1,0 +1,36 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+frontiers,edu.ucsb.cs156.frontiers.errors,NoLinkedOrganizationException,0,5,0,0,0,2,0,1,0,1
+frontiers,edu.ucsb.cs156.frontiers.errors,EntityNotFoundException,0,17,0,0,0,3,0,1,0,1
+frontiers,edu.ucsb.cs156.frontiers.errors,InvalidInstallationTypeException,0,5,0,0,0,2,0,1,0,1
+frontiers,edu.ucsb.cs156.frontiers.enums,RosterStatus,0,21,0,0,0,2,0,1,0,1
+frontiers,edu.ucsb.cs156.frontiers.enums,OrgStatus,0,33,0,0,0,2,0,1,0,1
+frontiers,edu.ucsb.cs156.frontiers.services.jobs,JobContext,0,48,0,4,0,6,0,4,0,2
+frontiers,edu.ucsb.cs156.frontiers.services.jobs,JobService,0,75,0,2,0,20,0,6,0,5
+frontiers,edu.ucsb.cs156.frontiers.services,UpdateUserService,0,74,0,6,0,19,0,7,0,4
+frontiers,edu.ucsb.cs156.frontiers.services,SystemInfoServiceImpl,0,52,0,4,0,14,0,6,0,4
+frontiers,edu.ucsb.cs156.frontiers.services,SystemInfoService,0,3,0,0,0,1,0,1,0,1
+frontiers,edu.ucsb.cs156.frontiers.services,JwtService,0,152,0,4,0,35,0,7,0,5
+frontiers,edu.ucsb.cs156.frontiers.services,RepositoryService,0,161,0,2,0,35,0,3,0,2
+frontiers,edu.ucsb.cs156.frontiers.services,RosterStudentDTOService,0,24,0,0,0,6,0,3,0,3
+frontiers,edu.ucsb.cs156.frontiers.services,OrganizationMemberService,0,144,0,4,0,26,0,4,0,2
+frontiers,edu.ucsb.cs156.frontiers.services,OrganizationLinkerService,0,133,0,2,0,28,0,4,0,3
+frontiers,edu.ucsb.cs156.frontiers.services,CurrentUserService,0,10,0,2,0,2,0,3,0,2
+frontiers,edu.ucsb.cs156.frontiers.services,OrganizationMemberService.new TypeReference() {...},0,3,0,0,0,1,0,1,0,1
+frontiers,edu.ucsb.cs156.frontiers.services,OrganizationMemberService.new TypeReference() {...},0,3,0,0,0,1,0,1,0,1
+frontiers,edu.ucsb.cs156.frontiers.controllers,JobsController,0,98,0,2,0,20,0,11,0,10
+frontiers,edu.ucsb.cs156.frontiers.controllers,CSRFController,0,5,0,0,0,2,0,2,0,2
+frontiers,edu.ucsb.cs156.frontiers.controllers,UserInfoController,0,6,0,0,0,2,0,2,0,2
+frontiers,edu.ucsb.cs156.frontiers.controllers,RosterStudentsController,0,379,0,16,0,84,0,23,0,15
+frontiers,edu.ucsb.cs156.frontiers.controllers,CSVDownloadsController,0,101,0,0,0,21,0,5,0,5
+frontiers,edu.ucsb.cs156.frontiers.controllers,RosterStudentsController.InsertStatus,0,15,0,0,0,2,0,1,0,1
+frontiers,edu.ucsb.cs156.frontiers.controllers,CoursesController,0,146,0,4,0,30,0,10,0,8
+frontiers,edu.ucsb.cs156.frontiers.controllers,RepositoryController,0,65,0,6,0,13,0,6,0,3
+frontiers,edu.ucsb.cs156.frontiers.controllers,ApiController,0,33,0,0,0,10,0,6,0,6
+frontiers,edu.ucsb.cs156.frontiers.controllers,UsersController,0,16,0,0,0,4,0,2,0,2
+frontiers,edu.ucsb.cs156.frontiers.controllers,WebhookController,0,75,0,8,0,17,0,6,0,2
+frontiers,edu.ucsb.cs156.frontiers.controllers,SystemInfoController,0,7,0,0,0,2,0,2,0,2
+frontiers,edu.ucsb.cs156.frontiers.jobs,UpdateOrgMembershipJob,0,47,0,4,0,11,0,3,0,1
+frontiers,edu.ucsb.cs156.frontiers.jobs,CreateStudentRepositoriesJob,0,37,0,6,0,7,0,4,0,1
+frontiers,edu.ucsb.cs156.frontiers.jobs,UpdateAllJob,0,10,0,0,0,4,0,1,0,1
+frontiers,edu.ucsb.cs156.frontiers.jobs,TestJob,0,22,0,2,0,7,0,2,0,1
+frontiers,edu.ucsb.cs156.frontiers.models,RosterStudentDTO,0,45,0,2,0,14,0,2,0,1
