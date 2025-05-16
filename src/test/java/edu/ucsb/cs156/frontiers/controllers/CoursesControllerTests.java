@@ -1,7 +1,21 @@
 package edu.ucsb.cs156.frontiers.controllers;
 
-import edu.ucsb.cs156.frontiers.errors.InvalidInstallationTypeException;
-import edu.ucsb.cs156.frontiers.services.OrganizationLinkerService;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.Map;
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureDataJpa;
@@ -14,24 +28,11 @@ import org.springframework.test.web.servlet.MvcResult;
 import edu.ucsb.cs156.frontiers.ControllerTestCase;
 import edu.ucsb.cs156.frontiers.entities.Course;
 import edu.ucsb.cs156.frontiers.entities.User;
+import edu.ucsb.cs156.frontiers.errors.InvalidInstallationTypeException;
 import edu.ucsb.cs156.frontiers.repositories.CourseRepository;
 import edu.ucsb.cs156.frontiers.services.CurrentUserService;
+import edu.ucsb.cs156.frontiers.services.OrganizationLinkerService;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Map;
-import java.util.Optional;
-
-import static org.mockito.Mockito.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 
 @Slf4j
 @WebMvcTest(controllers = CoursesController.class)
@@ -178,7 +179,7 @@ public class CoursesControllerTests extends ControllerTestCase {
 
         String responseUrl = response.getResponse().getHeader(HttpHeaders.LOCATION);
         verify(courseRepository, times(1)).save(eq(course2));
-        assertEquals("/courses/success",  responseUrl);
+        assertEquals("/admin/courses?success=True&course=1",  responseUrl);
     }
 
     @Test
