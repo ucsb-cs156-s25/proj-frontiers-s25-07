@@ -372,6 +372,6 @@ public class JobsControllerDetailedTests extends ControllerTestCase {
     // assert
     String responseString = response.getResponse().getContentAsString();
     Job jobReturned = objectMapper.readValue(responseString, Job.class);
-    MatcherAssert.assertThat(jobReturned.getStatus(), Matchers.anyOf(Matchers.is("completed"), Matchers.is("running")));
+    MatcherAssert.assertThat(jobReturned.getStatus(), Matchers.anyOf(Matchers.is("complete"), Matchers.is("running")));
   }
 }
