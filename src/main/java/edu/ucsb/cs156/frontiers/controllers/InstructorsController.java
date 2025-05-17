@@ -1,6 +1,5 @@
 package edu.ucsb.cs156.frontiers.controllers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import edu.ucsb.cs156.frontiers.entities.Instructor;
@@ -9,6 +8,7 @@ import edu.ucsb.cs156.frontiers.repositories.InstructorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,7 +37,7 @@ public class InstructorsController extends ApiController {
     ObjectMapper mapper;
 
     /**
-     * Create a new Instructor.
+     * Create a new Instructor, available only to Admins.
      * 
      * @param email the email of the instructor
      * @return the created Instructor
@@ -55,7 +55,7 @@ public class InstructorsController extends ApiController {
     }
 
     /**
-     * This method returns a list of all instructors, available only to Admins.
+     * Get a list of all instructors, available only to Admins.
      * 
      * @return a list of all instructors
      */
@@ -65,5 +65,24 @@ public class InstructorsController extends ApiController {
     public Iterable<Instructor> allInstructors() {
         Iterable<Instructor> instructors = instructorRepository.findAll();
         return instructors;
+    }
+
+    /**
+     * Delete an instructor by email, available only to Admins.
+     */
+    @Operation(summary = "Delete an Instructor by email")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @DeleteMapping("/delete")
+    public ResponseEntity<String> deleteInstructor(
+            @RequestParam String email) {
+        Instructor instructor = instructorRepository.findById(email).orElse(null);
+
+        if (instructor == null) {
+            return ResponseEntity.status(404)
+                    .body(String.format("Instructor with email %s not found.", email));
+        }
+
+        instructorRepository.delete(instructor);
+        return ResponseEntity.status(200).body(String.format("Instructor with email %s deleted.", email));
     }
 }
