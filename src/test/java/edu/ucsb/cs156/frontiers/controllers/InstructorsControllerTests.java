@@ -22,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -133,19 +134,40 @@ public class InstructorsControllerTests extends ControllerTestCase {
                 when(instructorRepository.findById(eq("ins@ucsb.edu"))).thenReturn(Optional.of(instructor));
 
                 // Act
-                MvcResult response = mockMvc.perform(delete("/api/admin/instructors/delete") // Correct the URL
-                                .param("email", "ins@ucsb.edu") // Add the correct parameter
-                                .with(csrf())) // CSRF protection
+                MvcResult response = mockMvc.perform(delete("/api/admin/instructors/delete")
+                                .param("email", "ins@ucsb.edu")
+                                .with(csrf()))
                                 .andExpect(status().isOk())
                                 .andReturn();
 
                 // Assert
                 verify(instructorRepository, times(1)).findById("ins@ucsb.edu");
-                verify(instructorRepository, times(1)).delete(instructor); // Ensure that the correct instructor is deleted
-
-                // Assert that the response message matches the expected format
+                verify(instructorRepository, times(1)).delete(instructor); 
                 String expectedMessage = String.format("Instructor with email %s deleted.", instructor.getEmail());
                 String responseString = response.getResponse().getContentAsString();
                 assertEquals(expectedMessage, responseString);
         }
+
+        @WithMockUser(roles = { "ADMIN" })
+        @Test
+        public void admin_try_to_delete_a_instructor_not_found() throws Exception {
+                // Arrange
+                String email = "nonexistent@ucsb.edu";
+                when(instructorRepository.findById(eq(email))).thenReturn(Optional.empty());
+
+                // Act
+                MvcResult response = mockMvc.perform(delete("/api/admin/instructors/delete")
+                                .param("email", email)
+                                .with(csrf()))
+                                .andExpect(status().isNotFound())
+                                .andReturn();
+
+                // Assert
+                verify(instructorRepository, times(1)).findById(email);
+                verify(instructorRepository, times(0)).delete(any());
+                String expectedMessage = String.format("Instructor with email %s not found.", email);
+                String responseString = response.getResponse().getContentAsString();
+                assertEquals(expectedMessage, responseString);
+        }
+
 }
