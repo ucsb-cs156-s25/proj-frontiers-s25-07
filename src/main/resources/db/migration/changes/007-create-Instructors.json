@@ -2,7 +2,7 @@
     {
       "changeSet": {
         "id": "007-create-Instructors",
-        "author": "Hannya",
+        "author": "hannyaYan",
         "preConditions": [
           {
             "onFail": "MARK_RAN"
