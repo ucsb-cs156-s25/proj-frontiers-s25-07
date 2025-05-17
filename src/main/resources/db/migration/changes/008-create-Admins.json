@@ -1,0 +1,43 @@
+{
+  "databaseChangeLog": [
+    {
+      "changeSet": {
+        "id": "008-create-Admins",
+        "author": "shellyzhu",
+        "preConditions": [
+          {
+            "onFail": "MARK_RAN"
+          },
+          {
+            "not": [
+              {
+                "tableExists": {
+                  "tableName": "admins"
+                }
+              }
+            ]
+          }
+        ],
+        "changes": [
+          {
+            "createTable": {
+              "columns": [
+                {
+                  "column": {
+                    "constraints": {
+                      "primaryKey": true,
+                      "primaryKeyName": "admins_pk"
+                    },
+                    "name": "email",
+                    "type": "VARCHAR(255)"
+                  }
+                }
+              ],
+              "tableName": "admins"
+            }
+          }
+        ]
+      }
+    }
+  ]
+} 
