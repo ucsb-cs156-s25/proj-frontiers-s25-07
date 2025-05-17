@@ -1,7 +1,7 @@
 { "databaseChangeLog": [
     {
       "changeSet": {
-        "id": "Instructor-1",
+        "id": "007-create-instructors",
         "author": "Hannya",
         "preConditions": [
           {
