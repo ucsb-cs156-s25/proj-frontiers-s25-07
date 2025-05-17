@@ -1,8 +1,8 @@
 { "databaseChangeLog": [
     {
       "changeSet": {
-        "id": "007-create-instructors",
-        "author": "Hannya",
+        "id": "007-create-Instructors",
+        "author": "hannyaYan",
         "preConditions": [
           {
             "onFail": "MARK_RAN"
