@@ -1,5 +1,5 @@
 package edu.ucsb.cs156.frontiers.controllers;
-
+//rerun
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.ucsb.cs156.frontiers.entities.Job;
 import edu.ucsb.cs156.frontiers.entities.User;
@@ -14,7 +14,12 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MvcResult;
-
+//test
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+//
 import edu.ucsb.cs156.frontiers.ControllerTestCase;
 import edu.ucsb.cs156.frontiers.entities.Course;
 import edu.ucsb.cs156.frontiers.entities.RosterStudent;
@@ -42,9 +47,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
 import org.springframework.http.MediaType;
+import org.mockito.ArgumentCaptor;
 
 @Slf4j
-@WebMvcTest(controllers = RosterStudentsController.class)
+@WebMvcTest(controllers = {RosterStudentsController.class})
 @AutoConfigureDataJpa
 public class RosterStudentsControllerTests extends ControllerTestCase {
 
@@ -727,5 +733,388 @@ public class RosterStudentsControllerTests extends ControllerTestCase {
                 String responseString = response.getResponse().getContentAsString();
                 String expectedJson = mapper.writeValueAsString(List.of());
                 assertEquals(expectedJson, responseString);
+        }
+
+        @Test
+        @WithMockUser(roles = { "ADMIN" })
+        public void testUpdateRosterStudent_emptyFields() throws Exception {
+                MvcResult response = mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "1")
+                        .param("firstName", "   ")
+                        .param("lastName", "   ")
+                        .param("studentId", "   "))
+                        .andExpect(status().isBadRequest())
+                        .andReturn();
+
+                verify(rosterStudentRepository, never()).findById(any());
+                verify(rosterStudentRepository, never()).save(any(RosterStudent.class));
+
+                String responseString = response.getResponse().getErrorMessage();
+                assertEquals("Required fields cannot be empty", responseString);
+        }
+
+        @Test
+        @WithMockUser(roles = { "ADMIN" })
+        public void testUpdateRosterStudent_success() throws Exception {
+                RosterStudent existingStudent = RosterStudent.builder()
+                        .id(1L)
+                        .firstName("Old")
+                        .lastName("OldName")
+                        .studentId("A123456")
+                        .email("old@ucsb.edu")
+                        .course(course1)
+                        .rosterStatus(RosterStatus.ROSTER)
+                        .orgStatus(OrgStatus.NONE)
+                        .build();
+
+                RosterStudent updatedStudent = RosterStudent.builder()
+                        .id(1L)
+                        .firstName("New")
+                        .lastName("NewName")
+                        .studentId("A123456")
+                        .email("old@ucsb.edu")
+                        .course(course1)
+                        .rosterStatus(RosterStatus.ROSTER)
+                        .orgStatus(OrgStatus.NONE)
+                        .build();
+
+                when(rosterStudentRepository.findById(eq(1L))).thenReturn(Optional.of(existingStudent));
+                when(rosterStudentRepository.save(any(RosterStudent.class))).thenReturn(updatedStudent);
+
+                MvcResult response = mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "1")
+                        .param("firstName", "   New   ")
+                        .param("lastName", "   NewName   ")
+                        .param("studentId", "   A123456   "))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+                ArgumentCaptor<RosterStudent> captor = ArgumentCaptor.forClass(RosterStudent.class);
+                verify(rosterStudentRepository).save(captor.capture());
+                RosterStudent saved = captor.getValue();
+                assertEquals("New", saved.getFirstName());
+                assertEquals("NewName", saved.getLastName());
+                assertEquals("A123456", saved.getStudentId());
+
+                String responseString = response.getResponse().getContentAsString();
+                String expectedJson = mapper.writeValueAsString(updatedStudent);
+                assertEquals(expectedJson, responseString);
+        }
+
+        @Test
+        @WithMockUser(roles = { "ADMIN" })
+        public void testUpdateRosterStudent_duplicateStudentId() throws Exception {
+                RosterStudent existingStudent = RosterStudent.builder()
+                        .id(1L)
+                        .firstName("Old")
+                        .lastName("OldName")
+                        .studentId("A123456")
+                        .email("old@ucsb.edu")
+                        .course(course1)
+                        .rosterStatus(RosterStatus.ROSTER)
+                        .orgStatus(OrgStatus.NONE)
+                        .build();
+
+                RosterStudent otherStudent = RosterStudent.builder()
+                        .id(2L)
+                        .firstName("Other")
+                        .lastName("Student")
+                        .studentId("A789012")
+                        .email("other@ucsb.edu")
+                        .course(course1)
+                        .rosterStatus(RosterStatus.ROSTER)
+                        .orgStatus(OrgStatus.NONE)
+                        .build();
+
+                when(rosterStudentRepository.findById(eq(1L))).thenReturn(Optional.of(existingStudent));
+                when(rosterStudentRepository.findByCourseIdAndStudentId(eq(1L), eq("A789012")))
+                        .thenReturn(Optional.of(otherStudent));
+
+                MvcResult response = mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "1")
+                        .param("firstName", "New")
+                        .param("lastName", "NewName")
+                        .param("studentId", "A789012"))
+                        .andExpect(status().isBadRequest())
+                        .andReturn();
+
+                verify(rosterStudentRepository).findById(eq(1L));
+                verify(rosterStudentRepository).findByCourseIdAndStudentId(eq(1L), eq("A789012"));
+                verify(rosterStudentRepository, never()).save(any(RosterStudent.class));
+
+                String responseString = response.getResponse().getErrorMessage();
+                assertEquals("Student ID already exists in this course", responseString);
+        }
+
+        @Test
+        @WithMockUser(roles = { "ADMIN" })
+        public void testUpdateRosterStudent_notFound() throws Exception {
+                when(rosterStudentRepository.findById(eq(99L))).thenReturn(Optional.empty());
+
+                MvcResult response = mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "99")
+                        .param("firstName", "New")
+                        .param("lastName", "Name")
+                        .param("studentId", "A123456"))
+                        .andExpect(status().isNotFound())
+                        .andReturn();
+
+                verify(rosterStudentRepository).findById(eq(99L));
+                verify(rosterStudentRepository, never()).save(any(RosterStudent.class));
+
+                String responseString = response.getResponse().getContentAsString();
+                Map<String, String> expectedMap = Map.of(
+                        "type", "EntityNotFoundException",
+                        "message", "RosterStudent with id 99 not found");
+                String expectedJson = mapper.writeValueAsString(expectedMap);
+                assertEquals(expectedJson, responseString);
+        }
+
+        @Test
+        @WithMockUser(roles = { "USER" })
+        public void testUpdateRosterStudent_unauthorized() throws Exception {
+                mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "1")
+                        .param("firstName", "New")
+                        .param("lastName", "Name")
+                        .param("studentId", "A123456"))
+                        .andExpect(status().isForbidden());
+
+                verify(rosterStudentRepository, never()).findById(any());
+                verify(rosterStudentRepository, never()).save(any());
+        }
+
+        @Test
+        @WithMockUser(roles = { "ADMIN" })
+        public void testUpdateRosterStudent_newStudentIdNotExists() throws Exception {
+                RosterStudent existingStudent = RosterStudent.builder()
+                        .id(1L)
+                        .firstName("Old")
+                        .lastName("OldName")
+                        .studentId("A123456")
+                        .email("old@ucsb.edu")
+                        .course(course1)
+                        .rosterStatus(RosterStatus.ROSTER)
+                        .orgStatus(OrgStatus.NONE)
+                        .build();
+
+                RosterStudent updatedStudent = RosterStudent.builder()
+                        .id(1L)
+                        .firstName("New")
+                        .lastName("NewName")
+                        .studentId("A999999") 
+                        .email("old@ucsb.edu")
+                        .course(course1)
+                        .rosterStatus(RosterStatus.ROSTER)
+                        .orgStatus(OrgStatus.NONE)
+                        .build();
+
+                when(rosterStudentRepository.findById(eq(1L))).thenReturn(Optional.of(existingStudent));
+                when(rosterStudentRepository.findByCourseIdAndStudentId(eq(1L), eq("A999999")))
+                        .thenReturn(Optional.empty());
+                when(rosterStudentRepository.save(any(RosterStudent.class))).thenReturn(updatedStudent);
+
+                MvcResult response = mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "1")
+                        .param("firstName", "   New   ")
+                        .param("lastName", "   NewName   ")
+                        .param("studentId", "   A999999   "))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+                ArgumentCaptor<RosterStudent> captor = ArgumentCaptor.forClass(RosterStudent.class);
+                verify(rosterStudentRepository).save(captor.capture());
+                RosterStudent saved = captor.getValue();
+                assertEquals("New", saved.getFirstName());
+                assertEquals("NewName", saved.getLastName());
+                assertEquals("A999999", saved.getStudentId());
+
+                String responseString = response.getResponse().getContentAsString();
+                String expectedJson = mapper.writeValueAsString(updatedStudent);
+                assertEquals(expectedJson, responseString);
+        }
+
+        @Test
+        @WithMockUser(roles = { "ADMIN" })
+        public void testUpdateRosterStudent_sameStudentIdWithWhitespace() throws Exception {
+                RosterStudent existingStudent = RosterStudent.builder()
+                        .id(1L)
+                        .firstName("Old")
+                        .lastName("OldName")
+                        .studentId("A123456")
+                        .email("old@ucsb.edu")
+                        .course(course1)
+                        .rosterStatus(RosterStatus.ROSTER)
+                        .orgStatus(OrgStatus.NONE)
+                        .build();
+
+                RosterStudent updatedStudent = RosterStudent.builder()
+                        .id(1L)
+                        .firstName("New")
+                        .lastName("NewName")
+                        .studentId("A123456")
+                        .email("old@ucsb.edu")
+                        .course(course1)
+                        .rosterStatus(RosterStatus.ROSTER)
+                        .orgStatus(OrgStatus.NONE)
+                        .build();
+
+                when(rosterStudentRepository.findById(eq(1L))).thenReturn(Optional.of(existingStudent));
+                when(rosterStudentRepository.save(any(RosterStudent.class))).thenReturn(updatedStudent);
+
+                MvcResult response = mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "1")
+                        .param("firstName", "  New  ")
+                        .param("lastName", "  NewName  ")
+                        .param("studentId", "  A123456  "))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+                ArgumentCaptor<RosterStudent> captor = ArgumentCaptor.forClass(RosterStudent.class);
+                verify(rosterStudentRepository).save(captor.capture());
+                RosterStudent saved = captor.getValue();
+                assertEquals("New", saved.getFirstName());
+                assertEquals("NewName", saved.getLastName());
+                assertEquals("A123456", saved.getStudentId());
+
+                String responseString = response.getResponse().getContentAsString();
+                String expectedJson = mapper.writeValueAsString(updatedStudent);
+                assertEquals(expectedJson, responseString);
+        }
+
+        @Test
+        @WithMockUser(roles = { "ADMIN" })
+        public void testUpdateRosterStudent_nullFields() throws Exception {
+                MvcResult response = mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "1")
+                        .param("lastName", "Doe")
+                        .param("studentId", "A123456"))
+                        .andExpect(status().isBadRequest())
+                        .andReturn();
+
+                verify(rosterStudentRepository, never()).findById(any());
+                verify(rosterStudentRepository, never()).save(any(RosterStudent.class));
+
+                String responseString = response.getResponse().getErrorMessage();
+                assertEquals("Required fields cannot be empty", responseString);
+        }
+
+        @Test
+        @WithMockUser(roles = { "ADMIN" })
+        public void testUpdateRosterStudent_nullFirstName() throws Exception {
+                MvcResult response = mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "1")
+                        .param("lastName", "Doe")
+                        .param("studentId", "A123456"))
+                        .andExpect(status().isBadRequest())
+                        .andReturn();
+
+                verify(rosterStudentRepository, never()).findById(any());
+                verify(rosterStudentRepository, never()).save(any(RosterStudent.class));
+
+                String responseString = response.getResponse().getErrorMessage();
+                assertEquals("Required fields cannot be empty", responseString);
+        }
+
+        @Test
+        @WithMockUser(roles = { "ADMIN" })
+        public void testUpdateRosterStudent_nullLastName() throws Exception {
+                MvcResult response = mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "1")
+                        .param("firstName", "John")
+                        .param("studentId", "A123456"))
+                        .andExpect(status().isBadRequest())
+                        .andReturn();
+
+                verify(rosterStudentRepository, never()).findById(any());
+                verify(rosterStudentRepository, never()).save(any(RosterStudent.class));
+
+                String responseString = response.getResponse().getErrorMessage();
+                assertEquals("Required fields cannot be empty", responseString);
+        }
+
+        @Test
+        @WithMockUser(roles = { "ADMIN" })
+        public void testUpdateRosterStudent_nullStudentId() throws Exception {
+                MvcResult response = mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "1")
+                        .param("firstName", "John")
+                        .param("lastName", "Doe"))
+                        .andExpect(status().isBadRequest())
+                        .andReturn();
+
+                verify(rosterStudentRepository, never()).findById(any());
+                verify(rosterStudentRepository, never()).save(any(RosterStudent.class));
+
+                String responseString = response.getResponse().getErrorMessage();
+                assertEquals("Required fields cannot be empty", responseString);
+        }
+
+        @Test
+        @WithMockUser(roles = { "ADMIN" })
+        public void testUpdateRosterStudent_emptyFirstName() throws Exception {
+                MvcResult response = mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "1")
+                        .param("firstName", "")
+                        .param("lastName", "Doe")
+                        .param("studentId", "A123456"))
+                        .andExpect(status().isBadRequest())
+                        .andReturn();
+
+                verify(rosterStudentRepository, never()).findById(any());
+                verify(rosterStudentRepository, never()).save(any(RosterStudent.class));
+
+                String responseString = response.getResponse().getErrorMessage();
+                assertEquals("Required fields cannot be empty", responseString);
+        }
+
+        @Test
+        @WithMockUser(roles = { "ADMIN" })
+        public void testUpdateRosterStudent_emptyLastName() throws Exception {
+                MvcResult response = mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "1")
+                        .param("firstName", "John")
+                        .param("lastName", "")
+                        .param("studentId", "A123456"))
+                        .andExpect(status().isBadRequest())
+                        .andReturn();
+
+                verify(rosterStudentRepository, never()).findById(any());
+                verify(rosterStudentRepository, never()).save(any(RosterStudent.class));
+
+                String responseString = response.getResponse().getErrorMessage();
+                assertEquals("Required fields cannot be empty", responseString);
+        }
+
+        @Test
+        @WithMockUser(roles = { "ADMIN" })
+        public void testUpdateRosterStudent_emptyStudentId() throws Exception {
+                MvcResult response = mockMvc.perform(put("/api/rosterstudents/update")
+                        .with(csrf())
+                        .param("id", "1")
+                        .param("firstName", "John")
+                        .param("lastName", "Doe")
+                        .param("studentId", ""))
+                        .andExpect(status().isBadRequest())
+                        .andReturn();
+
+                verify(rosterStudentRepository, never()).findById(any());
+                verify(rosterStudentRepository, never()).save(any(RosterStudent.class));
+
+                String responseString = response.getResponse().getErrorMessage();
+                assertEquals("Required fields cannot be empty", responseString);
         }
 }

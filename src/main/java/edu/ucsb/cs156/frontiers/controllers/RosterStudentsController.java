@@ -24,6 +24,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
@@ -232,5 +234,37 @@ public class RosterStudentsController extends ApiController {
         User currentUser = currentUserService.getUser();
         Iterable<RosterStudent> rosterStudents = rosterStudentRepository.findAllByUser((currentUser));
         return rosterStudents;
+    }
+
+    @Operation(summary = "Update a roster student")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PutMapping("/update")
+    public RosterStudent updateRosterStudent(
+            @Parameter(name = "id") @RequestParam Long id,
+            @Parameter(name = "firstName") @RequestParam(required = false) String firstName,
+            @Parameter(name = "lastName") @RequestParam(required = false) String lastName,
+            @Parameter(name = "studentId") @RequestParam(required = false) String studentId) throws EntityNotFoundException {
+        
+        if(firstName == null || lastName == null || studentId == null ||
+            firstName.trim().isEmpty() || lastName.trim().isEmpty() || studentId.trim().isEmpty()){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Required fields cannot be empty");
+        }
+
+        RosterStudent rosterStudent = rosterStudentRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(RosterStudent.class, id));
+
+        if(!rosterStudent.getStudentId().trim().equals(studentId.trim())){
+            Optional<RosterStudent> existingStudent = rosterStudentRepository.findByCourseIdAndStudentId(
+                    rosterStudent.getCourse().getId(), studentId.trim());
+            if (existingStudent.isPresent()){
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Student ID already exists in this course");
+            }
+        }
+
+        rosterStudent.setFirstName(firstName.trim());
+        rosterStudent.setLastName(lastName.trim());
+        rosterStudent.setStudentId(studentId.trim());
+
+        return rosterStudentRepository.save(rosterStudent);
     }
 }
