@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RosterStudentDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">frontiers</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs156.frontiers.models</a> &gt; <span class="el_source">RosterStudentDTO.java</span></div><h1>RosterStudentDTO.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs156.frontiers.models;
+
+
+import edu.ucsb.cs156.frontiers.entities.RosterStudent;
+import edu.ucsb.cs156.frontiers.enums.OrgStatus;
+import edu.ucsb.cs156.frontiers.enums.RosterStatus;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+
+/**
+ * This is a DTO class that represents a student in the roster.
+ * It is used to transfer data between the server and the client.
+ */
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class RosterStudentDTO {
+ 
+    private Long id;
+
+    private Long courseId;
+    
+    private String studentId;
+    private String firstName;
+    private String lastName;
+    private String email;
+
+    private long userId;
+    private Integer userGithubId;
+    private String userGithubLogin;
+
+    @Enumerated(EnumType.STRING)
+    private RosterStatus rosterStatus;
+
+    @Enumerated(EnumType.STRING)
+    private OrgStatus orgStatus;
+
+
+    public static RosterStudentDTO from(RosterStudent student) {
+<span class="fc bfc" id="L46" title="All 2 branches covered.">        long userId = student.getUser() != null ? student.getUser().getId() : 0;</span>
+        
+<span class="fc" id="L48">        return RosterStudentDTO.builder()</span>
+<span class="fc" id="L49">                .id(student.getId())</span>
+<span class="fc" id="L50">                .courseId(student.getCourse().getId())</span>
+<span class="fc" id="L51">                .studentId(student.getStudentId())</span>
+<span class="fc" id="L52">                .firstName(student.getFirstName())</span>
+<span class="fc" id="L53">                .lastName(student.getLastName())</span>
+<span class="fc" id="L54">                .email(student.getEmail())</span>
+<span class="fc" id="L55">                .userId(userId)</span>
+<span class="fc" id="L56">                .userGithubId(student.getGithubId())</span>
+<span class="fc" id="L57">                .userGithubLogin(student.getGithubLogin())</span>
+<span class="fc" id="L58">                .rosterStatus(student.getRosterStatus())</span>
+<span class="fc" id="L59">                .orgStatus(student.getOrgStatus())</span>
+<span class="fc" id="L60">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
