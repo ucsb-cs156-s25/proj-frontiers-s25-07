@@ -42,5 +42,48 @@ public class AdminsControllerTests extends ControllerTestCase {
         @MockBean
         UserRepository userRepository;
 
+        // Authorization tests for post
+
+       @Test
+       public void logged_out_users_cannot_post() throws Exception {
+               mockMvc.perform(post("/api/admin/post"))
+                               .andExpect(status().is(403));
+       }
+
+       @WithMockUser(roles = { "USER" })
+       @Test
+       public void logged_in_regular_users_cannot_post() throws Exception {
+               mockMvc.perform(post("/api/admin/post"))
+                               .andExpect(status().is(403)); // only admins can post
+       }
+
+       // Functionality tests
+
+       @WithMockUser(roles = { "ADMIN", "USER" })
+       @Test
+       public void an_admin_user_can_post_a_new_admin() throws Exception {
+
+
+               Admin admin = Admin.builder()
+                               .adminEmail("acdamstedt@ucsb.edu")
+                               .build();
+
+
+               when(adminRepository.save(eq(admin))).thenReturn(admin);
+
+
+               // act
+               MvcResult response = mockMvc.perform(
+                               post("/api/admin/post?adminEmail=acdamstedt@ucsb.edu")
+                                               .with(csrf()))
+                               .andExpect(status().isOk()).andReturn();
+
+
+               // assert
+               verify(adminRepository, times(1)).save(admin);
+               String expectedJson = mapper.writeValueAsString(admin);
+               String responseString = response.getResponse().getContentAsString();
+               assertEquals(expectedJson, responseString);
+       }
 }
 

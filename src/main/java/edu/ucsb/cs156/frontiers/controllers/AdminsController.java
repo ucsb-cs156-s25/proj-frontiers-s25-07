@@ -40,5 +40,27 @@ import java.time.LocalDateTime;
 
     @Autowired
     AdminRepository adminRepository;
-    
+
+    /**
+    * Create a new admin
+    * @param adminEmail       the email in typical email format
+    * @return the saved admin
+    */
+   @Operation(summary= "Create a new admin")
+   @PreAuthorize("hasRole('ROLE_ADMIN')")
+   @PostMapping("/post")
+   public Admin postAdmin(
+           @Parameter(name="adminEmail") @RequestParam String adminEmail)
+       {
+
+
+       Admin admin = new Admin();
+       admin.setAdminEmail(adminEmail);
+
+
+       Admin savedAdmin = adminRepository.save(admin);
+
+
+       return savedAdmin;
+   }
 }
