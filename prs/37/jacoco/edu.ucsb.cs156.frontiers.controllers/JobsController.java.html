@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JobsController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">frontiers</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs156.frontiers.controllers</a> &gt; <span class="el_source">JobsController.java</span></div><h1>JobsController.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs156.frontiers.controllers;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import edu.ucsb.cs156.frontiers.entities.Job;
+import edu.ucsb.cs156.frontiers.errors.EntityNotFoundException;
+import edu.ucsb.cs156.frontiers.jobs.TestJob;
+import edu.ucsb.cs156.frontiers.jobs.UpdateAllJob;
+import edu.ucsb.cs156.frontiers.repositories.JobsRepository;
+import edu.ucsb.cs156.frontiers.services.UpdateUserService;
+import edu.ucsb.cs156.frontiers.services.jobs.JobService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@Tag(name = &quot;Jobs&quot;)
+@RequestMapping(&quot;/api/jobs&quot;)
+@RestController
+<span class="fc" id="L31">@Slf4j</span>
+<span class="fc" id="L32">public class JobsController extends ApiController {</span>
+  @Autowired private JobsRepository jobsRepository;
+
+  @Autowired private JobService jobService;
+
+  @Autowired private UpdateUserService updateUserService; 
+  
+  @Autowired ObjectMapper mapper;
+
+  @Operation(summary = &quot;List all jobs&quot;)
+  @PreAuthorize(&quot;hasRole('ROLE_ADMIN')&quot;)
+  @GetMapping(&quot;/all&quot;)
+  public Iterable&lt;Job&gt; allJobs() {
+<span class="fc" id="L45">    Iterable&lt;Job&gt; jobs = jobsRepository.findAll();</span>
+<span class="fc" id="L46">    return jobs;</span>
+  }
+
+  @Operation(summary = &quot;Delete all job records&quot;)
+  @PreAuthorize(&quot;hasRole('ROLE_ADMIN')&quot;)
+  @DeleteMapping(&quot;/all&quot;)
+  public Map&lt;String, String&gt; deleteAllJobs() {
+<span class="fc" id="L53">    jobsRepository.deleteAll();</span>
+<span class="fc" id="L54">    return Map.of(&quot;message&quot;, &quot;All jobs deleted&quot;);</span>
+  }
+
+  @Operation(summary = &quot;Get a specific Job Log by ID if it is in the database&quot;)
+  @PreAuthorize(&quot;hasRole('ROLE_ADMIN')&quot;)
+  @GetMapping(&quot;&quot;)
+  public Job getJobLogById(
+      @Parameter(name = &quot;id&quot;, description = &quot;ID of the job&quot;) @RequestParam Long id)
+      throws JsonProcessingException {
+
+<span class="fc" id="L64">    Job job =</span>
+<span class="fc" id="L65">        jobsRepository.findById(id).orElseThrow(() -&gt; new EntityNotFoundException(Job.class, id));</span>
+
+<span class="fc" id="L67">    return job;</span>
+  }
+
+  @Operation(summary = &quot;Delete specific job record&quot;)
+  @PreAuthorize(&quot;hasRole('ROLE_ADMIN')&quot;)
+  @DeleteMapping(&quot;&quot;)
+  public Map&lt;String, String&gt; deleteAllJobs(@Parameter(name = &quot;id&quot;) @RequestParam Long id) {
+<span class="fc bfc" id="L74" title="All 2 branches covered.">    if (!jobsRepository.existsById(id)) {</span>
+<span class="fc" id="L75">      return Map.of(&quot;message&quot;, String.format(&quot;Job with id %d not found&quot;, id));</span>
+    }
+<span class="fc" id="L77">    jobsRepository.deleteById(id);</span>
+<span class="fc" id="L78">    return Map.of(&quot;message&quot;, String.format(&quot;Job with id %d deleted&quot;, id));</span>
+  }
+
+  @Operation(summary = &quot;Launch Test Job (click fail if you want to test exception handling)&quot;)
+  @PreAuthorize(&quot;hasRole('ROLE_ADMIN')&quot;)
+  @PostMapping(&quot;/launch/testjob&quot;)
+  public Job launchTestJob(
+      @Parameter(name = &quot;fail&quot;) @RequestParam Boolean fail,
+      @Parameter(name = &quot;sleepMs&quot;) @RequestParam Integer sleepMs) {
+
+<span class="fc" id="L88">    TestJob testJob = TestJob.builder().fail(fail).sleepMs(sleepMs).build();</span>
+<span class="fc" id="L89">    return jobService.runAsJob(testJob);</span>
+  }
+
+
+  @Operation(summary = &quot;Get long job logs&quot;)
+  @PreAuthorize(&quot;hasRole('ROLE_ADMIN')&quot;)
+  @GetMapping(&quot;/logs/{id}&quot;)
+  public String getJobLogs(@Parameter(name = &quot;id&quot;, description = &quot;Job ID&quot;) @PathVariable Long id) {
+
+<span class="fc" id="L98">    return jobService.getJobLogs(id);</span>
+  }
+
+  @Operation(summary = &quot;Launch UpdateAll job&quot;)
+  @PreAuthorize(&quot;hasRole('ROLE_ADMIN')&quot;)
+  @PostMapping(&quot;/launch/updateAll&quot;)
+  public Job launchUpdateAllJob() {
+
+    UpdateAllJob job = 
+<span class="fc" id="L107">        UpdateAllJob.builder()</span>
+<span class="fc" id="L108">            .updateUserService(updateUserService) </span>
+<span class="fc" id="L109">            .build();</span>
+<span class="fc" id="L110">    return jobService.runAsJob(job);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
