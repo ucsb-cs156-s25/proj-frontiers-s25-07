@@ -203,27 +203,25 @@ import lombok.extern.slf4j.Slf4j;
     @PreAuthorize(&quot;hasRole('ROLE_USER')&quot;)
     @GetMapping(&quot;/list&quot;)
     public List&lt;Map&lt;String, Object&gt;&gt; listCoursesForCurrentUser() {
-<span class="fc" id="L206">        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();</span>
-<span class="fc" id="L207">        OAuth2User user = (OAuth2User) authentication.getPrincipal();</span>
-<span class="fc" id="L208">        String email = user.getAttribute(&quot;email&quot;);</span>
-<span class="fc" id="L209">        Iterable&lt;RosterStudent&gt; rosterStudentsIterable = rosterStudentRepository.findAllByEmail(email);</span>
-<span class="fc" id="L210">        List&lt;RosterStudent&gt; rosterStudents = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L211">        rosterStudentsIterable.forEach(rosterStudents::add);</span>
-<span class="fc" id="L212">        return rosterStudents.stream()</span>
-<span class="fc" id="L213">                .map(rs -&gt; {</span>
-<span class="fc" id="L214">                    Course course = rs.getCourse();</span>
-<span class="fc" id="L215">                    RosterStudentDTO rsDto = RosterStudentDTO.from(rs);</span>
-<span class="fc" id="L216">                    Map&lt;String, Object&gt; response = new LinkedHashMap&lt;&gt;();</span>
-<span class="fc" id="L217">                    response.put(&quot;id&quot;, course.getId());</span>
-<span class="fc" id="L218">                    response.put(&quot;installationId&quot;, course.getInstallationId());</span>
-<span class="fc" id="L219">                    response.put(&quot;orgName&quot;, course.getOrgName());</span>
-<span class="fc" id="L220">                    response.put(&quot;courseName&quot;, course.getCourseName());</span>
-<span class="fc" id="L221">                    response.put(&quot;term&quot;, course.getTerm());</span>
-<span class="fc" id="L222">                    response.put(&quot;school&quot;, course.getSchool());</span>
-<span class="fc" id="L223">                    response.put(&quot;studentStatus&quot;, rsDto.getOrgStatus());</span>
-<span class="fc" id="L224">                    return response;</span>
+<span class="fc" id="L206">        String email = getCurrentUser().getUser().getEmail();</span>
+<span class="fc" id="L207">        Iterable&lt;RosterStudent&gt; rosterStudentsIterable = rosterStudentRepository.findAllByEmail(email);</span>
+<span class="fc" id="L208">        List&lt;RosterStudent&gt; rosterStudents = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L209">        rosterStudentsIterable.forEach(rosterStudents::add);</span>
+<span class="fc" id="L210">        return rosterStudents.stream()</span>
+<span class="fc" id="L211">                .map(rs -&gt; {</span>
+<span class="fc" id="L212">                    Course course = rs.getCourse();</span>
+<span class="fc" id="L213">                    RosterStudentDTO rsDto = RosterStudentDTO.from(rs);</span>
+<span class="fc" id="L214">                    Map&lt;String, Object&gt; response = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L215">                    response.put(&quot;id&quot;, course.getId());</span>
+<span class="fc" id="L216">                    response.put(&quot;installationId&quot;, course.getInstallationId());</span>
+<span class="fc" id="L217">                    response.put(&quot;orgName&quot;, course.getOrgName());</span>
+<span class="fc" id="L218">                    response.put(&quot;courseName&quot;, course.getCourseName());</span>
+<span class="fc" id="L219">                    response.put(&quot;term&quot;, course.getTerm());</span>
+<span class="fc" id="L220">                    response.put(&quot;school&quot;, course.getSchool());</span>
+<span class="fc" id="L221">                    response.put(&quot;studentStatus&quot;, rsDto.getOrgStatus());</span>
+<span class="fc" id="L222">                    return response;</span>
                 })
-<span class="fc" id="L226">                .collect(Collectors.toList());</span>
+<span class="fc" id="L224">                .collect(Collectors.toList());</span>
     }
 
 }
