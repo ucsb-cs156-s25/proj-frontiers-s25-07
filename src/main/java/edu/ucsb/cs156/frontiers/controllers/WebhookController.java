@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
@@ -24,6 +26,7 @@ import java.util.Optional;
 @RequestMapping("/api/webhooks")
 public class WebhookController {
 
+    private static final Logger log = LoggerFactory.getLogger(WebhookController.class);
 
     private final CourseRepository courseRepository;
     private final RosterStudentRepository rosterStudentRepository;
@@ -43,21 +46,55 @@ public class WebhookController {
     public ResponseEntity<String> createGitHubWebhook(@RequestBody JsonNode jsonBody) throws JsonProcessingException {
 
         if(jsonBody.has("action")){
-            if(jsonBody.get("action").asText().equals("member_added")){
+            String action = jsonBody.get("action").asText();
+            
+            // Handle member_added event
+            if(action.equals("member_added") || action.equals("member_invited")){
                 String githubLogin = jsonBody.get("membership").get("user").get("login").asText();
                 String installationId = jsonBody.get("installation").get("id").asText();
                 Optional<Course> course = courseRepository.findByInstallationId(installationId);
+                
                 if(course.isPresent()){
                     Optional<RosterStudent> student = rosterStudentRepository.findByCourseAndGithubLogin(course.get(), githubLogin);
                     if(student.isPresent()){
                         RosterStudent updatedStudent = student.get();
-                        updatedStudent.setOrgStatus(OrgStatus.MEMBER);
+                        
+                        // Set appropriate status based on action
+                        if(action.equals("member_added")) {
+                            updatedStudent.setOrgStatus(OrgStatus.MEMBER);
+                        } else if(action.equals("member_invited")) {
+                            updatedStudent.setOrgStatus(OrgStatus.INVITED);
+                        }
+                        
+                        rosterStudentRepository.save(updatedStudent);
+                        return ResponseEntity.ok(updatedStudent.toString());
+                    } else {
+                        // Handle case where GitHub user is not yet linked to a roster student
+                        // This could happen if a staff member or TA is added who isn't on the roster
+                        log.info("GitHub user {} was added to course {}, but no matching roster student was found", 
+                                 githubLogin, course.get().getCourseName());
+                    }
+                } else {
+                    log.warn("Received webhook for installation ID {} but no matching course was found", installationId);
+                }
+            } 
+            // Handle member_removed event
+            else if(action.equals("member_removed")) {
+                String githubLogin = jsonBody.get("membership").get("user").get("login").asText();
+                String installationId = jsonBody.get("installation").get("id").asText();
+                Optional<Course> course = courseRepository.findByInstallationId(installationId);
+                
+                if(course.isPresent()){
+                    Optional<RosterStudent> student = rosterStudentRepository.findByCourseAndGithubLogin(course.get(), githubLogin);
+                    if(student.isPresent()){
+                        RosterStudent updatedStudent = student.get();
+                        updatedStudent.setOrgStatus(OrgStatus.NONE);
                         rosterStudentRepository.save(updatedStudent);
                         return ResponseEntity.ok(updatedStudent.toString());
                     }
                 }
             }
         }
-        return  ResponseEntity.ok().body("success");
+        return ResponseEntity.ok().body("success");
     }
 }

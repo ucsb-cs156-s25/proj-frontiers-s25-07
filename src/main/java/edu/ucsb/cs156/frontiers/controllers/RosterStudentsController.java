@@ -267,4 +267,18 @@ public class RosterStudentsController extends ApiController {
 
         return rosterStudentRepository.save(rosterStudent);
     }
+
+    @Operation(summary = "Update a student's organization status")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PutMapping("/updateOrgStatus")
+    public RosterStudent updateOrgStatus(
+            @Parameter(name = "id") @RequestParam Long id,
+            @Parameter(name = "orgStatus") @RequestParam OrgStatus orgStatus) throws EntityNotFoundException {
+        
+        RosterStudent rosterStudent = rosterStudentRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(RosterStudent.class, id));
+        
+        rosterStudent.setOrgStatus(orgStatus);
+        return rosterStudentRepository.save(rosterStudent);
+    }
 }

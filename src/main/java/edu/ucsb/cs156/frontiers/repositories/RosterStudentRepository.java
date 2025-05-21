@@ -19,6 +19,9 @@ public interface RosterStudentRepository extends JpaRepository<RosterStudent, Lo
     Optional<RosterStudent> findByCourseAndGithubId(Course course, int githubId);
 
     Optional<RosterStudent> findByCourseAndGithubLogin(Course course, String githubLogin);
+    
+    // Add a method to find by GitHub login across all courses
+    List<RosterStudent> findAllByGithubLogin(String githubLogin);
 
     Iterable<RosterStudent> findAllByUser(User user);
 }
