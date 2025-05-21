@@ -45,11 +45,24 @@ public class WebhookController {
     @PostMapping("/github")
     public ResponseEntity<String> createGitHubWebhook(@RequestBody JsonNode jsonBody) throws JsonProcessingException {
 
+        log.info("Received GitHub webhook: {}", jsonBody);
+        
         if(jsonBody.has("action")){
             String action = jsonBody.get("action").asText();
             
             // Handle member_added event
             if(action.equals("member_added") || action.equals("member_invited")){
+                // Check if all required fields exist in the payload
+                if (!jsonBody.has("membership") || 
+                    !jsonBody.get("membership").has("user") || 
+                    !jsonBody.get("membership").get("user").has("login") ||
+                    !jsonBody.has("installation") ||
+                    !jsonBody.get("installation").has("id")) {
+                    
+                    log.warn("Webhook payload missing required fields: {}", jsonBody);
+                    return ResponseEntity.ok().body("success");
+                }
+                
                 String githubLogin = jsonBody.get("membership").get("user").get("login").asText();
                 String installationId = jsonBody.get("installation").get("id").asText();
                 Optional<Course> course = courseRepository.findByInstallationId(installationId);
@@ -80,6 +93,17 @@ public class WebhookController {
             } 
             // Handle member_removed event
             else if(action.equals("member_removed")) {
+                // Check if all required fields exist in the payload
+                if (!jsonBody.has("membership") || 
+                    !jsonBody.get("membership").has("user") || 
+                    !jsonBody.get("membership").get("user").has("login") ||
+                    !jsonBody.has("installation") ||
+                    !jsonBody.get("installation").has("id")) {
+                    
+                    log.warn("Webhook payload missing required fields: {}", jsonBody);
+                    return ResponseEntity.ok().body("success");
+                }
+                
                 String githubLogin = jsonBody.get("membership").get("user").get("login").asText();
                 String installationId = jsonBody.get("installation").get("id").asText();
                 Optional<Course> course = courseRepository.findByInstallationId(installationId);
