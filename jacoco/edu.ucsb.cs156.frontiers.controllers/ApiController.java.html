@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -18,8 +19,8 @@ import java.util.Map;
  * This is an abstract class that provides common functionality for all API controllers.
  */
 
-<span class="fc" id="L21">@Slf4j</span>
-<span class="fc" id="L22">public abstract class ApiController {</span>
+<span class="fc" id="L22">@Slf4j</span>
+<span class="fc" id="L23">public abstract class ApiController {</span>
   @Autowired
   private CurrentUserService currentUserService;
 
@@ -28,7 +29,7 @@ import java.util.Map;
    * @return the current user
    */
   protected CurrentUser getCurrentUser() {
-<span class="fc" id="L31">    return currentUserService.getCurrentUser();</span>
+<span class="fc" id="L32">    return currentUserService.getCurrentUser();</span>
   }
 
   /**
@@ -37,7 +38,7 @@ import java.util.Map;
    * @return a map with the message
    */
   protected Object genericMessage(String message) {
-<span class="fc" id="L40">    return Map.of(&quot;message&quot;, message);</span>
+<span class="fc" id="L41">    return Map.of(&quot;message&quot;, message);</span>
   }
 
   /**
@@ -48,9 +49,9 @@ import java.util.Map;
   @ExceptionHandler({ EntityNotFoundException.class })
   @ResponseStatus(HttpStatus.NOT_FOUND)
   public Object handleEntityNotFoundException(Throwable e) {
-<span class="fc" id="L51">    return Map.of(</span>
-<span class="fc" id="L52">      &quot;type&quot;, e.getClass().getSimpleName(),</span>
-<span class="fc" id="L53">      &quot;message&quot;, e.getMessage()</span>
+<span class="fc" id="L52">    return Map.of(</span>
+<span class="fc" id="L53">      &quot;type&quot;, e.getClass().getSimpleName(),</span>
+<span class="fc" id="L54">      &quot;message&quot;, e.getMessage()</span>
     );
   }
 
@@ -62,10 +63,21 @@ import java.util.Map;
   @ExceptionHandler({ NoLinkedOrganizationException.class })
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   public Object handleNoLinkedOrgException(Throwable e) {
-<span class="fc" id="L65">    return Map.of(</span>
-<span class="fc" id="L66">            &quot;type&quot;, e.getClass().getSimpleName(),</span>
-<span class="fc" id="L67">            &quot;message&quot;, e.getMessage()</span>
+<span class="fc" id="L66">    return Map.of(</span>
+<span class="fc" id="L67">            &quot;type&quot;, e.getClass().getSimpleName(),</span>
+<span class="fc" id="L68">            &quot;message&quot;, e.getMessage()</span>
     );
   }
+
+  /**
+   * This method handles the UnsupportedOperationException.
+   * @param e the exception
+   * @return a map with the type and message of the exception
+   */
+    @ExceptionHandler(UnsupportedOperationException.class)
+    public ResponseEntity&lt;Map&lt;String, String&gt;&gt; handleUnsupportedOperation(UnsupportedOperationException ex) {
+<span class="fc" id="L79">        return ResponseEntity.status(HttpStatus.FORBIDDEN)</span>
+<span class="fc" id="L80">                .body(Map.of(&quot;message&quot;, ex.getMessage()));</span>
+    }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
