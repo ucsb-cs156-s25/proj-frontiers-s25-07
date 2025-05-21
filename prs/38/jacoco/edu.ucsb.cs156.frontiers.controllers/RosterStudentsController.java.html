@@ -277,17 +277,10 @@ import org.springframework.transaction.annotation.Transactional;
 <span class="fc" id="L277">        RosterStudent rosterStudent = rosterStudentRepository.findById(id)</span>
 <span class="fc" id="L278">                .orElseThrow(() -&gt; new EntityNotFoundException(RosterStudent.class, id));</span>
 <span class="fc" id="L279">        Course course = rosterStudent.getCourse();</span>
-<span class="fc bfc" id="L280" title="All 2 branches covered.">        if(course != null){</span>
-<span class="fc" id="L281">            List&lt;RosterStudent&gt; students = course.getRosterStudents();</span>
-<span class="fc bfc" id="L282" title="All 2 branches covered.">            if(students != null){</span>
-<span class="fc" id="L283">                students.remove(rosterStudent);</span>
-<span class="fc" id="L284">                course.getRosterStudents().clear();</span>
-<span class="fc" id="L285">                course.getRosterStudents().addAll(students);</span>
-<span class="fc" id="L286">                courseRepository.save(course);</span>
-            }
-        }
-<span class="fc" id="L289">        rosterStudentRepository.delete(rosterStudent);</span>
-<span class="fc" id="L290">        return ResponseEntity.ok(&quot;Successfully deleted roster student and removed him/her from the course list&quot;);</span>
+<span class="fc" id="L280">        course.getRosterStudents().remove(rosterStudent);</span>
+<span class="fc" id="L281">        rosterStudentRepository.delete(rosterStudent);</span>
+<span class="fc" id="L282">        courseRepository.save(course);</span>
+<span class="fc" id="L283">        return ResponseEntity.ok(&quot;Successfully deleted roster student and removed him/her from the course list&quot;);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
