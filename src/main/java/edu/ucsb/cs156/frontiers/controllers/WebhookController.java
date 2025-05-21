@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.StreamSupport;
 
 @Tag(name = "Webhooks Controller")
 @RestController
@@ -54,40 +55,127 @@ public class WebhookController {
             String action = jsonBody.get("action").asText();
             
             // Handle member_added event
-            if(action.equals("member_added") || action.equals("member_invited")){
-                // For member_invited, the structure is different - user login is directly in the payload
-                String githubLogin;
-                String installationId;
-                
-                if(action.equals("member_invited")) {
-                    // Check if all required fields exist for member_invited payload
-                    if ((!jsonBody.has("user") || !jsonBody.get("user").has("login")) && 
-                        (!jsonBody.has("invitation") || !jsonBody.get("invitation").has("email")) ||
-                        !jsonBody.has("installation") ||
-                        !jsonBody.get("installation").has("id")) {
-                        
-                        log.warn("Webhook payload missing required fields: {}", jsonBody);
-                        return ResponseEntity.ok().body("success");
-                    }
+            if(action.equals("member_added")) {
+                // Original check for member_added payload
+                if (!jsonBody.has("membership") || 
+                    !jsonBody.get("membership").has("user") || 
+                    !jsonBody.get("membership").get("user").has("login") ||
+                    !jsonBody.has("installation") ||
+                    !jsonBody.get("installation").has("id")) {
                     
-                    // Handle both GitHub username invites and email invites
-                    if (jsonBody.has("user") && jsonBody.get("user").has("login")) {
-                        githubLogin = jsonBody.get("user").get("login").asText();
-                    } else {
-                        // For email invites, we don't have a GitHub login yet
-                        // We'll use the email to find the student
-                        String email = jsonBody.get("invitation").get("email").asText();
-                        log.info("Processing invitation by email: {}", email);
-                        installationId = jsonBody.get("installation").get("id").asText();
+                    log.warn("Webhook payload missing required fields: {}", jsonBody);
+                    return ResponseEntity.ok().body("success");
+                }
+                
+                String githubLogin = jsonBody.get("membership").get("user").get("login").asText();
+                String installationId = jsonBody.get("installation").get("id").asText();
+                
+                Optional<Course> course = courseRepository.findByInstallationId(installationId);
+                
+                if(course.isPresent()){
+                    // First try to find by GitHub login
+                    Optional<RosterStudent> student = rosterStudentRepository.findByCourseAndGithubLogin(course.get(), githubLogin);
+                    
+                    if(!student.isPresent()) {
+                        // If not found by GitHub login, try to find a student with INVITED status in this course
+                        log.info("Student not found by GitHub login, trying to find previously invited student in course");
                         
-                        Optional<Course> course = courseRepository.findByInstallationId(installationId);
-                        if(course.isPresent()) {
-                            // Find student by email directly
-                            List<RosterStudent> studentsInCourse = rosterStudentRepository.findAllByEmail(email);
+                        Iterable<RosterStudent> allStudentsInCourse = rosterStudentRepository.findByCourseId(course.get().getId());
+                        Optional<RosterStudent> invitedStudent = StreamSupport.stream(allStudentsInCourse.spliterator(), false)
+                            .filter(s -> s.getOrgStatus() == OrgStatus.INVITED)
+                            .findFirst();
+                            
+                        if(invitedStudent.isPresent()) {
+                            RosterStudent updatedStudent = invitedStudent.get();
+                            // Update the GitHub login and status
+                            updatedStudent.setGithubLogin(githubLogin);
+                            updatedStudent.setOrgStatus(OrgStatus.MEMBER);
+                            
+                            rosterStudentRepository.save(updatedStudent);
+                            return ResponseEntity.ok(updatedStudent.toString());
+                        } else {
+                            // Try the email matching approach as a fallback
+                            List<RosterStudent> studentsInCourse = rosterStudentRepository.findAllByEmail(githubLogin + "@ucsb.edu");
                             Optional<RosterStudent> studentInCourse = studentsInCourse.stream()
                                 .filter(s -> s.getCourse().getId().equals(course.get().getId()))
                                 .findFirst();
                                 
+                            if(studentInCourse.isPresent()) {
+                                RosterStudent updatedStudent = studentInCourse.get();
+                                updatedStudent.setGithubLogin(githubLogin);
+                                updatedStudent.setOrgStatus(OrgStatus.MEMBER);
+                                
+                                rosterStudentRepository.save(updatedStudent);
+                                return ResponseEntity.ok(updatedStudent.toString());
+                            } else {
+                                log.info("GitHub user {} was added to course {}, but no matching roster student was found", 
+                                         githubLogin, course.get().getCourseName());
+                            }
+                        }
+                    } else {
+                        // Existing code for when student is found by GitHub login
+                        RosterStudent updatedStudent = student.get();
+                        updatedStudent.setOrgStatus(OrgStatus.MEMBER);
+                        
+                        rosterStudentRepository.save(updatedStudent);
+                        return ResponseEntity.ok(updatedStudent.toString());
+                    }
+                } else {
+                    log.warn("Received webhook for installation ID {} but no matching course was found", installationId);
+                }
+            } 
+            // Handle member_invited event
+            else if(action.equals("member_invited")) {
+                // Check if all required fields exist for member_invited payload
+                if ((!jsonBody.has("user") || !jsonBody.get("user").has("login")) && 
+                    (!jsonBody.has("invitation") || !jsonBody.get("invitation").has("email")) ||
+                    !jsonBody.has("installation") ||
+                    !jsonBody.get("installation").has("id")) {
+                    
+                    log.warn("Webhook payload missing required fields: {}", jsonBody);
+                    return ResponseEntity.ok().body("success");
+                }
+                
+                // Handle both GitHub username invites and email invites
+                if (jsonBody.has("user") && jsonBody.get("user").has("login")) {
+                    String githubLogin = jsonBody.get("user").get("login").asText();
+                    String installationId = jsonBody.get("installation").get("id").asText();
+                    
+                    Optional<Course> course = courseRepository.findByInstallationId(installationId);
+                    if(course.isPresent()) {
+                        // Find student by email directly
+                        List<RosterStudent> studentsInCourse = rosterStudentRepository.findAllByEmail(jsonBody.get("invitation").get("email").asText());
+                        Optional<RosterStudent> studentInCourse = studentsInCourse.stream()
+                            .filter(s -> s.getCourse().getId().equals(course.get().getId()))
+                            .findFirst();
+                            
+                            if(studentInCourse.isPresent()) {
+                                RosterStudent updatedStudent = studentInCourse.get();
+                                updatedStudent.setOrgStatus(OrgStatus.INVITED);
+                                rosterStudentRepository.save(updatedStudent);
+                                return ResponseEntity.ok(updatedStudent.toString());
+                            } else {
+                                log.info("Email {} was invited to course {}, but no matching roster student was found", 
+                                         jsonBody.get("invitation").get("email").asText(), course.get().getCourseName());
+                                return ResponseEntity.ok().body("success");
+                            }
+                    }
+                    return ResponseEntity.ok().body("success");
+                } else {
+                    // For email invites, we don't have a GitHub login yet
+                    // We'll use the email to find the student
+                    String email = jsonBody.get("invitation").get("email").asText();
+                    log.info("Processing invitation by email: {}", email);
+                    String installationId = jsonBody.get("installation").get("id").asText();
+                    
+                    Optional<Course> course = courseRepository.findByInstallationId(installationId);
+                    if(course.isPresent()) {
+                        // Find student by email directly
+                        List<RosterStudent> studentsInCourse = rosterStudentRepository.findAllByEmail(email);
+                        Optional<RosterStudent> studentInCourse = studentsInCourse.stream()
+                            .filter(s -> s.getCourse().getId().equals(course.get().getId()))
+                            .findFirst();
+                            
                             if(studentInCourse.isPresent()) {
                                 RosterStudent updatedStudent = studentInCourse.get();
                                 updatedStudent.setOrgStatus(OrgStatus.INVITED);
@@ -98,80 +186,10 @@ public class WebhookController {
                                          email, course.get().getCourseName());
                                 return ResponseEntity.ok().body("success");
                             }
-                        }
-                        return ResponseEntity.ok().body("success");
                     }
-                    
-                    installationId = jsonBody.get("installation").get("id").asText();
-                } else {
-                    // Original check for member_added payload
-                    if (!jsonBody.has("membership") || 
-                        !jsonBody.get("membership").has("user") || 
-                        !jsonBody.get("membership").get("user").has("login") ||
-                        !jsonBody.has("installation") ||
-                        !jsonBody.get("installation").has("id")) {
-                        
-                        log.warn("Webhook payload missing required fields: {}", jsonBody);
-                        return ResponseEntity.ok().body("success");
-                    }
-                    
-                    githubLogin = jsonBody.get("membership").get("user").get("login").asText();
-                    installationId = jsonBody.get("installation").get("id").asText();
+                    return ResponseEntity.ok().body("success");
                 }
-                
-                Optional<Course> course = courseRepository.findByInstallationId(installationId);
-                
-                if(course.isPresent()){
-                    // First try to find by GitHub login
-                    Optional<RosterStudent> student = rosterStudentRepository.findByCourseAndGithubLogin(course.get(), githubLogin);
-                    
-                    if(!student.isPresent()) {
-                        // If not found by GitHub login, try to find by email using the GitHub login
-                        // This approach doesn't require UserRepository
-                        log.info("Student not found by GitHub login, trying to find by email for GitHub user: {}", githubLogin);
-                        
-                        // Find all students with matching email in the course
-                        List<RosterStudent> studentsInCourse = rosterStudentRepository.findAllByEmail(githubLogin + "@ucsb.edu");
-                        Optional<RosterStudent> studentInCourse = studentsInCourse.stream()
-                            .filter(s -> s.getCourse().getId().equals(course.get().getId()))
-                            .findFirst();
-                            
-                        if(studentInCourse.isPresent()) {
-                            RosterStudent updatedStudent = studentInCourse.get();
-                            // Update the GitHub login
-                            updatedStudent.setGithubLogin(githubLogin);
-                            
-                            // Set appropriate status based on action
-                            if(action.equals("member_added")) {
-                                updatedStudent.setOrgStatus(OrgStatus.MEMBER);
-                            } else if(action.equals("member_invited")) {
-                                updatedStudent.setOrgStatus(OrgStatus.INVITED);
-                            }
-                            
-                            rosterStudentRepository.save(updatedStudent);
-                            return ResponseEntity.ok(updatedStudent.toString());
-                        } else {
-                            log.info("GitHub user {} was added to course {}, but no matching roster student was found", 
-                                     githubLogin, course.get().getCourseName());
-                        }
-                    } else {
-                        // Existing code for when student is found by GitHub login
-                        RosterStudent updatedStudent = student.get();
-                        
-                        // Set appropriate status based on action
-                        if(action.equals("member_added")) {
-                            updatedStudent.setOrgStatus(OrgStatus.MEMBER);
-                        } else if(action.equals("member_invited")) {
-                            updatedStudent.setOrgStatus(OrgStatus.INVITED);
-                        }
-                        
-                        rosterStudentRepository.save(updatedStudent);
-                        return ResponseEntity.ok(updatedStudent.toString());
-                    }
-                } else {
-                    log.warn("Received webhook for installation ID {} but no matching course was found", installationId);
-                }
-            } 
+            }
             // Handle member_removed event
             else if(action.equals("member_removed")) {
                 // Check if all required fields exist in the payload
