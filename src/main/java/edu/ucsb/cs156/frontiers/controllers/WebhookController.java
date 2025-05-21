@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Optional;
 
 @Tag(name = "Webhooks Controller")
@@ -30,10 +31,12 @@ public class WebhookController {
 
     private final CourseRepository courseRepository;
     private final RosterStudentRepository rosterStudentRepository;
+    private final UserRepository userRepository;
 
-    public WebhookController(CourseRepository courseRepository, RosterStudentRepository rosterStudentRepository) {
+    public WebhookController(CourseRepository courseRepository, RosterStudentRepository rosterStudentRepository, UserRepository userRepository) {
         this.courseRepository = courseRepository;
         this.rosterStudentRepository = rosterStudentRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -88,8 +91,40 @@ public class WebhookController {
                 Optional<Course> course = courseRepository.findByInstallationId(installationId);
                 
                 if(course.isPresent()){
+                    // First try to find by GitHub login
                     Optional<RosterStudent> student = rosterStudentRepository.findByCourseAndGithubLogin(course.get(), githubLogin);
-                    if(student.isPresent()){
+                    
+                    if(!student.isPresent()) {
+                        // If not found by GitHub login, try to find by email using the GitHub login
+                        // This approach doesn't require UserRepository
+                        log.info("Student not found by GitHub login, trying to find by email for GitHub user: {}", githubLogin);
+                        
+                        // Find all students with matching email in the course
+                        List<RosterStudent> studentsInCourse = rosterStudentRepository.findAllByEmail(githubLogin + "@ucsb.edu");
+                        Optional<RosterStudent> studentInCourse = studentsInCourse.stream()
+                            .filter(s -> s.getCourse().getId().equals(course.get().getId()))
+                            .findFirst();
+                            
+                        if(studentInCourse.isPresent()) {
+                            RosterStudent updatedStudent = studentInCourse.get();
+                            // Update the GitHub login
+                            updatedStudent.setGithubLogin(githubLogin);
+                            
+                            // Set appropriate status based on action
+                            if(action.equals("member_added")) {
+                                updatedStudent.setOrgStatus(OrgStatus.MEMBER);
+                            } else if(action.equals("member_invited")) {
+                                updatedStudent.setOrgStatus(OrgStatus.INVITED);
+                            }
+                            
+                            rosterStudentRepository.save(updatedStudent);
+                            return ResponseEntity.ok(updatedStudent.toString());
+                        } else {
+                            log.info("GitHub user {} was added to course {}, but no matching roster student was found", 
+                                     githubLogin, course.get().getCourseName());
+                        }
+                    } else {
+                        // Existing code for when student is found by GitHub login
                         RosterStudent updatedStudent = student.get();
                         
                         // Set appropriate status based on action
@@ -101,10 +136,6 @@ public class WebhookController {
                         
                         rosterStudentRepository.save(updatedStudent);
                         return ResponseEntity.ok(updatedStudent.toString());
-                    } else {
-                        // Handle case where GitHub user is not yet linked to a roster student
-                        log.info("GitHub user {} was added to course {}, but no matching roster student was found", 
-                                 githubLogin, course.get().getCourseName());
                     }
                 } else {
                     log.warn("Received webhook for installation ID {} but no matching course was found", installationId);
