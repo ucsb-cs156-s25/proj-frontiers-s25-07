@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminsController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">frontiers</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs156.frontiers.controllers</a> &gt; <span class="el_source">AdminsController.java</span></div><h1>AdminsController.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs156.frontiers.controllers;
+
+
+import edu.ucsb.cs156.frontiers.entities.Admin;
+import edu.ucsb.cs156.frontiers.errors.EntityNotFoundException;
+import edu.ucsb.cs156.frontiers.repositories.AdminRepository;
+
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
+
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import jakarta.validation.Valid;
+
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+
+/**
+* This is a REST controller for Admin
+*/
+@Tag(name = &quot;Admin&quot;)
+@RequestMapping(&quot;/api/admin&quot;)
+@RestController
+<span class="fc" id="L46">@Slf4j</span>
+
+<span class="fc" id="L48">public class AdminsController extends ApiController {</span>
+   @Autowired
+   AdminRepository adminRepository;
+
+   /**
+   * Create a new admin
+   * @param adminEmail       the email in typical email format
+   * @return the saved admin
+   */
+  @Operation(summary= &quot;Create a new admin&quot;)
+  @PreAuthorize(&quot;hasRole('ROLE_ADMIN')&quot;)
+  @PostMapping(&quot;/post&quot;)
+  public Admin postAdmin(
+          @Parameter(name=&quot;email&quot;) @RequestParam String email)
+      {
+      
+<span class="fc" id="L64">      Admin admin = new Admin(email);</span>
+<span class="fc" id="L65">      Admin savedAdmin = adminRepository.save(admin);</span>
+<span class="fc" id="L66">      return savedAdmin;</span>
+  }
+
+  /**
+    * List all admins
+    *
+    * @return an iterable of Admin
+    */
+    @Operation(summary= &quot;List all admins&quot;)
+    @PreAuthorize(&quot;hasRole('ROLE_ADMIN')&quot;)
+    @GetMapping(&quot;/all&quot;)
+    public Iterable&lt;Admin&gt; allAdmins() {
+<span class="fc" id="L78">        Iterable&lt;Admin&gt; admins = adminRepository.findAll();</span>
+<span class="fc" id="L79">        return admins;</span>
+    }
+
+    @Value(&quot;#{'${app.admin.emails}'.split(',')}&quot;)
+    private List&lt;String&gt; adminEmails;
+
+    /**
+    * Delete an Admin
+    *
+    * @param email the email of the admin to delete
+    * @return a message indicating the admin was deleted
+    */
+   @Operation(summary= &quot;Delete an Admin&quot;)
+   @PreAuthorize(&quot;hasRole('ROLE_ADMIN')&quot;)
+   @DeleteMapping(&quot;/delete&quot;)
+   public Object deleteAdmin(
+           @Parameter(name=&quot;email&quot;) @RequestParam String email) {
+<span class="fc" id="L96">       Admin admin = adminRepository.findByEmail(email)</span>
+<span class="fc" id="L97">               .orElseThrow(() -&gt; new EntityNotFoundException(Admin.class, email));</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">      if (adminEmails.contains(email)) {</span>
+<span class="fc" id="L99">        throw new UnsupportedOperationException(&quot;Forbidden to delete an admin from ADMIN_EMAILS list&quot;);</span>
+      }
+<span class="fc" id="L101">       adminRepository.delete(admin);</span>
+<span class="fc" id="L102">       return genericMessage(&quot;Admin with id %s deleted&quot;.formatted(email));</span>
+   }
+
+}
+
+
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
