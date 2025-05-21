@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SystemInfoServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">frontiers</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs156.frontiers.services</a> &gt; <span class="el_source">SystemInfoServiceImpl.java</span></div><h1>SystemInfoServiceImpl.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs156.frontiers.services;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Service;
+
+import edu.ucsb.cs156.frontiers.models.SystemInfo;
+
+/**
+ * This is a service for getting information about the system.
+ * 
+ * This class relies on property values. For hints on testing, see: &lt;a href=
+ * &quot;https://www.baeldung.com/spring-boot-testing-configurationproperties&quot;&gt;https://www.baeldung.com/spring-boot-testing-configurationproperties&lt;/a&gt;
+ * 
+ */
+
+<span class="fc" id="L18">@Slf4j</span>
+@Service(&quot;systemInfo&quot;)
+@ConfigurationProperties
+<span class="fc" id="L21">public class SystemInfoServiceImpl extends SystemInfoService {</span>
+
+  @Value(&quot;${spring.h2.console.enabled:false}&quot;)
+  private boolean springH2ConsoleEnabled;
+
+  @Value(&quot;${app.showSwaggerUILink:false}&quot;)
+  private boolean showSwaggerUILink;
+
+  @Value(&quot;${app.oauth.login:/oauth2/authorization/google}&quot;)
+  private String oauthLogin;
+
+  @Value(&quot;${app.sourceRepo:https://github.com/ucsb-cs156/proj-courses}&quot;)
+  private String sourceRepo;
+
+  @Value(&quot;${git.commit.message.short:unknown}&quot;)
+  private String commitMessage;
+
+  @Value(&quot;${git.commit.id.abbrev:unknown}&quot;)
+  private String commitId;
+
+  public static String githubUrl(String repo, String commit) {
+<span class="fc bfc" id="L42" title="All 4 branches covered.">    return commit != null &amp;&amp; repo != null ? repo + &quot;/commit/&quot; + commit : null;</span>
+  }
+
+  /**
+   * This method returns the system information.
+   * 
+   * @see edu.ucsb.cs156.frontiers.models.SystemInfo
+   * @return the system information
+   */
+  public SystemInfo getSystemInfo() {
+<span class="fc" id="L52">    SystemInfo si = SystemInfo.builder()</span>
+<span class="fc" id="L53">        .springH2ConsoleEnabled(this.springH2ConsoleEnabled)</span>
+<span class="fc" id="L54">        .showSwaggerUILink(this.showSwaggerUILink)</span>
+<span class="fc" id="L55">        .oauthLogin(this.oauthLogin)</span>
+<span class="fc" id="L56">        .sourceRepo(this.sourceRepo)</span>
+<span class="fc" id="L57">        .commitMessage(this.commitMessage)</span>
+<span class="fc" id="L58">        .commitId(this.commitId)</span>
+<span class="fc" id="L59">        .githubUrl(githubUrl(this.sourceRepo, this.commitId))</span>
+<span class="fc" id="L60">        .build();</span>
+<span class="fc" id="L61">    log.info(&quot;getSystemInfo returns {}&quot;, si);</span>
+<span class="fc" id="L62">    return si;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
