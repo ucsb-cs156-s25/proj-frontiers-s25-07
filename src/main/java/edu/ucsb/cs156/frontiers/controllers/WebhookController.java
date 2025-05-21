@@ -52,19 +52,39 @@ public class WebhookController {
             
             // Handle member_added event
             if(action.equals("member_added") || action.equals("member_invited")){
-                // Check if all required fields exist in the payload
-                if (!jsonBody.has("membership") || 
-                    !jsonBody.get("membership").has("user") || 
-                    !jsonBody.get("membership").get("user").has("login") ||
-                    !jsonBody.has("installation") ||
-                    !jsonBody.get("installation").has("id")) {
+                // For member_invited, the structure is different - user login is directly in the payload
+                String githubLogin;
+                String installationId;
+                
+                if(action.equals("member_invited")) {
+                    // Check if all required fields exist for member_invited payload
+                    if (!jsonBody.has("user") || 
+                        !jsonBody.get("user").has("login") ||
+                        !jsonBody.has("installation") ||
+                        !jsonBody.get("installation").has("id")) {
+                        
+                        log.warn("Webhook payload missing required fields: {}", jsonBody);
+                        return ResponseEntity.ok().body("success");
+                    }
                     
-                    log.warn("Webhook payload missing required fields: {}", jsonBody);
-                    return ResponseEntity.ok().body("success");
+                    githubLogin = jsonBody.get("user").get("login").asText();
+                    installationId = jsonBody.get("installation").get("id").asText();
+                } else {
+                    // Original check for member_added payload
+                    if (!jsonBody.has("membership") || 
+                        !jsonBody.get("membership").has("user") || 
+                        !jsonBody.get("membership").get("user").has("login") ||
+                        !jsonBody.has("installation") ||
+                        !jsonBody.get("installation").has("id")) {
+                        
+                        log.warn("Webhook payload missing required fields: {}", jsonBody);
+                        return ResponseEntity.ok().body("success");
+                    }
+                    
+                    githubLogin = jsonBody.get("membership").get("user").get("login").asText();
+                    installationId = jsonBody.get("installation").get("id").asText();
                 }
                 
-                String githubLogin = jsonBody.get("membership").get("user").get("login").asText();
-                String installationId = jsonBody.get("installation").get("id").asText();
                 Optional<Course> course = courseRepository.findByInstallationId(installationId);
                 
                 if(course.isPresent()){
@@ -83,7 +103,6 @@ public class WebhookController {
                         return ResponseEntity.ok(updatedStudent.toString());
                     } else {
                         // Handle case where GitHub user is not yet linked to a roster student
-                        // This could happen if a staff member or TA is added who isn't on the roster
                         log.info("GitHub user {} was added to course {}, but no matching roster student was found", 
                                  githubLogin, course.get().getCourseName());
                     }
