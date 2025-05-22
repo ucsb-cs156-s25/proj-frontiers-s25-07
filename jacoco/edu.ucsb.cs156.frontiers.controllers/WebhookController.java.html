@@ -11,7 +11,6 @@ import edu.ucsb.cs156.frontiers.repositories.CourseRepository;
 import edu.ucsb.cs156.frontiers.repositories.RosterStudentRepository;
 import edu.ucsb.cs156.frontiers.repositories.UserRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,17 +22,16 @@ import java.util.Optional;
 @Tag(name = &quot;Webhooks Controller&quot;)
 @RestController
 @RequestMapping(&quot;/api/webhooks&quot;)
-<span class="fc" id="L26">@Slf4j</span>
 public class WebhookController {
 
 
     private final CourseRepository courseRepository;
     private final RosterStudentRepository rosterStudentRepository;
 
-<span class="fc" id="L33">    public WebhookController(CourseRepository courseRepository, RosterStudentRepository rosterStudentRepository) {</span>
-<span class="fc" id="L34">        this.courseRepository = courseRepository;</span>
-<span class="fc" id="L35">        this.rosterStudentRepository = rosterStudentRepository;</span>
-<span class="fc" id="L36">    }</span>
+<span class="fc" id="L31">    public WebhookController(CourseRepository courseRepository, RosterStudentRepository rosterStudentRepository) {</span>
+<span class="fc" id="L32">        this.courseRepository = courseRepository;</span>
+<span class="fc" id="L33">        this.rosterStudentRepository = rosterStudentRepository;</span>
+<span class="fc" id="L34">    }</span>
 
     /**
     * Accepts webhooks from GitHub, currently to update the membership status of a RosterStudent.
@@ -43,76 +41,24 @@ public class WebhookController {
     */
     @PostMapping(&quot;/github&quot;)
     public ResponseEntity&lt;String&gt; createGitHubWebhook(@RequestBody JsonNode jsonBody) throws JsonProcessingException {
-<span class="fc" id="L46">        log.info(&quot;Received GitHub webhook: {}&quot;, jsonBody.toString());</span>
 
-<span class="fc bfc" id="L48" title="All 2 branches covered.">        if(jsonBody.has(&quot;action&quot;)){</span>
-<span class="fc" id="L49">            String action = jsonBody.get(&quot;action&quot;).asText();</span>
-<span class="fc" id="L50">            log.info(&quot;Webhook action: {}&quot;, action);</span>
-            
-            // Handle member_added and member_invited events
-<span class="pc bpc" id="L53" title="1 of 4 branches missed.">            if(action.equals(&quot;member_added&quot;) || action.equals(&quot;member_invited&quot;)){</span>
-                // Extract GitHub login based on payload structure
-<span class="fc" id="L55">                String githubLogin = null;</span>
-<span class="fc" id="L56">                String installationId = null;</span>
-                
-                // For member_added events, the structure is different
-<span class="pc bpc" id="L59" title="1 of 4 branches missed.">                if (action.equals(&quot;member_added&quot;) &amp;&amp; jsonBody.has(&quot;membership&quot;) &amp;&amp; </span>
-<span class="pc bpc" id="L60" title="1 of 2 branches missed.">                    jsonBody.get(&quot;membership&quot;).has(&quot;user&quot;) &amp;&amp; </span>
-<span class="pc bpc" id="L61" title="1 of 2 branches missed.">                    jsonBody.get(&quot;membership&quot;).get(&quot;user&quot;).has(&quot;login&quot;) &amp;&amp;</span>
-<span class="pc bpc" id="L62" title="1 of 2 branches missed.">                    jsonBody.has(&quot;installation&quot;) &amp;&amp; </span>
-<span class="pc bpc" id="L63" title="1 of 2 branches missed.">                    jsonBody.get(&quot;installation&quot;).has(&quot;id&quot;)) {</span>
-                    
-<span class="fc" id="L65">                    githubLogin = jsonBody.get(&quot;membership&quot;).get(&quot;user&quot;).get(&quot;login&quot;).asText();</span>
-<span class="fc" id="L66">                    installationId = jsonBody.get(&quot;installation&quot;).get(&quot;id&quot;).asText();</span>
-                } 
-                // For member_invited events, use the original structure
-<span class="pc bpc" id="L69" title="1 of 2 branches missed.">                else if (action.equals(&quot;member_invited&quot;) &amp;&amp; </span>
-<span class="pc bpc" id="L70" title="3 of 4 branches missed.">                         jsonBody.has(&quot;user&quot;) &amp;&amp; jsonBody.get(&quot;user&quot;).has(&quot;login&quot;) &amp;&amp; </span>
-<span class="nc bnc" id="L71" title="All 4 branches missed.">                         jsonBody.has(&quot;installation&quot;) &amp;&amp; jsonBody.get(&quot;installation&quot;).has(&quot;id&quot;)) {</span>
-                    
-<span class="nc" id="L73">                    githubLogin = jsonBody.get(&quot;user&quot;).get(&quot;login&quot;).asText();</span>
-<span class="nc" id="L74">                    installationId = jsonBody.get(&quot;installation&quot;).get(&quot;id&quot;).asText();</span>
-                }
-                
-<span class="pc bpc" id="L77" title="1 of 4 branches missed.">                if (githubLogin != null &amp;&amp; installationId != null) {</span>
-<span class="fc" id="L78">                    log.info(&quot;GitHub login: {}, Installation ID: {}&quot;, githubLogin, installationId);</span>
-                    
-<span class="fc" id="L80">                    Optional&lt;Course&gt; course = courseRepository.findByInstallationId(installationId);</span>
-<span class="fc" id="L81">                    log.info(&quot;Course found: {}&quot;, course.isPresent());</span>
-                    
-<span class="fc bfc" id="L83" title="All 2 branches covered.">                    if(course.isPresent()){</span>
-<span class="fc" id="L84">                        Optional&lt;RosterStudent&gt; student = rosterStudentRepository.findByCourseAndGithubLogin(course.get(), githubLogin);</span>
-<span class="fc" id="L85">                        log.info(&quot;Student found: {}&quot;, student.isPresent());</span>
-                        
-<span class="fc bfc" id="L87" title="All 2 branches covered.">                        if(student.isPresent()){</span>
-<span class="fc" id="L88">                            RosterStudent updatedStudent = student.get();</span>
-<span class="fc" id="L89">                            log.info(&quot;Current student org status: {}&quot;, updatedStudent.getOrgStatus());</span>
-                            
-                            // Update status based on action
-<span class="pc bpc" id="L92" title="1 of 2 branches missed.">                            if(action.equals(&quot;member_added&quot;)) {</span>
-<span class="fc" id="L93">                                updatedStudent.setOrgStatus(OrgStatus.MEMBER);</span>
-<span class="fc" id="L94">                                log.info(&quot;Setting status to MEMBER&quot;);</span>
-<span class="nc bnc" id="L95" title="All 2 branches missed.">                            } else if(action.equals(&quot;member_invited&quot;)) {</span>
-<span class="nc" id="L96">                                updatedStudent.setOrgStatus(OrgStatus.INVITED);</span>
-<span class="nc" id="L97">                                log.info(&quot;Setting status to INVITED&quot;);</span>
-                            }
-                            
-<span class="fc" id="L100">                            rosterStudentRepository.save(updatedStudent);</span>
-<span class="fc" id="L101">                            log.info(&quot;Student saved with new org status: {}&quot;, updatedStudent.getOrgStatus());</span>
-<span class="fc" id="L102">                            return ResponseEntity.ok(updatedStudent.toString());</span>
-                        } else {
-<span class="fc" id="L104">                            log.warn(&quot;No student found with GitHub login: {} in course: {}&quot;, githubLogin, course.get().getCourseName());</span>
-                        }
-<span class="fc" id="L106">                    } else {</span>
-<span class="fc" id="L107">                        log.warn(&quot;No course found with installation ID: {}&quot;, installationId);</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">        if(jsonBody.has(&quot;action&quot;)){</span>
+<span class="fc bfc" id="L46" title="All 2 branches covered.">            if(jsonBody.get(&quot;action&quot;).asText().equals(&quot;member_added&quot;)){</span>
+<span class="fc" id="L47">                String githubLogin = jsonBody.get(&quot;membership&quot;).get(&quot;user&quot;).get(&quot;login&quot;).asText();</span>
+<span class="fc" id="L48">                String installationId = jsonBody.get(&quot;installation&quot;).get(&quot;id&quot;).asText();</span>
+<span class="fc" id="L49">                Optional&lt;Course&gt; course = courseRepository.findByInstallationId(installationId);</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">                if(course.isPresent()){</span>
+<span class="fc" id="L51">                    Optional&lt;RosterStudent&gt; student = rosterStudentRepository.findByCourseAndGithubLogin(course.get(), githubLogin);</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">                    if(student.isPresent()){</span>
+<span class="fc" id="L53">                        RosterStudent updatedStudent = student.get();</span>
+<span class="fc" id="L54">                        updatedStudent.setOrgStatus(OrgStatus.MEMBER);</span>
+<span class="fc" id="L55">                        rosterStudentRepository.save(updatedStudent);</span>
+<span class="fc" id="L56">                        return ResponseEntity.ok(updatedStudent.toString());</span>
                     }
-<span class="fc" id="L109">                } else {</span>
-<span class="fc" id="L110">                    log.warn(&quot;Webhook missing required fields for processing&quot;);</span>
                 }
             }
         }
-        
-<span class="fc" id="L115">        return ResponseEntity.ok().body(&quot;success&quot;);</span>
+<span class="fc" id="L61">        return  ResponseEntity.ok().body(&quot;success&quot;);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
