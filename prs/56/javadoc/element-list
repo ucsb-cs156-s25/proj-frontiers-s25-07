@@ -1,0 +1,14 @@
+edu.ucsb.cs156.frontiers
+edu.ucsb.cs156.frontiers.aop
+edu.ucsb.cs156.frontiers.config
+edu.ucsb.cs156.frontiers.controllers
+edu.ucsb.cs156.frontiers.entities
+edu.ucsb.cs156.frontiers.enums
+edu.ucsb.cs156.frontiers.errors
+edu.ucsb.cs156.frontiers.jobs
+edu.ucsb.cs156.frontiers.models
+edu.ucsb.cs156.frontiers.repositories
+edu.ucsb.cs156.frontiers.services
+edu.ucsb.cs156.frontiers.services.jobs
+edu.ucsb.cs156.frontiers.services.wiremock
+edu.ucsb.cs156.frontiers.startup
