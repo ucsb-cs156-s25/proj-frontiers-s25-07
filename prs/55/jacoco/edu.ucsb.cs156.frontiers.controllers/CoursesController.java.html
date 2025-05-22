@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CoursesController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">frontiers</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs156.frontiers.controllers</a> &gt; <span class="el_source">CoursesController.java</span></div><h1>CoursesController.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs156.frontiers.controllers;
+
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+import edu.ucsb.cs156.frontiers.entities.Course;
+import edu.ucsb.cs156.frontiers.errors.EntityNotFoundException;
+import edu.ucsb.cs156.frontiers.errors.InvalidInstallationTypeException;
+import edu.ucsb.cs156.frontiers.models.CurrentUser;
+import edu.ucsb.cs156.frontiers.repositories.CourseRepository;
+import edu.ucsb.cs156.frontiers.services.OrganizationLinkerService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
+
+@Tag(name = &quot;Course&quot;)
+@RequestMapping(&quot;/api/courses&quot;)
+@RestController
+<span class="fc" id="L37">@Slf4j</span>
+<span class="fc" id="L38">public class CoursesController extends ApiController {</span>
+    
+    @Autowired
+    private CourseRepository courseRepository;
+
+    @Autowired private OrganizationLinkerService linkerService;
+
+     /**
+     * This method creates a new Course.
+     * 
+    * @param orgName the name of the organization
+    * @param courseName the name of the course
+    * @param term the term of the course
+    * @param school the school of the course
+    * @return the created course
+     */
+
+    @Operation(summary = &quot;Create a new course&quot;)
+    @PreAuthorize(&quot;hasRole('ROLE_ADMIN')&quot;)
+    @PostMapping(&quot;/post&quot;)
+    public Course postCourse(
+            @Parameter(name = &quot;orgName&quot;) @RequestParam String orgName,
+            @Parameter(name = &quot;courseName&quot;) @RequestParam String courseName,
+            @Parameter(name = &quot;term&quot;) @RequestParam String term,
+            @Parameter(name = &quot;school&quot;) @RequestParam String school
+           )
+            {
+        //get current date right now and set status to pending
+<span class="fc" id="L66">        CurrentUser currentUser = getCurrentUser();</span>
+<span class="fc" id="L67">        Course course = Course.builder()</span>
+<span class="fc" id="L68">                .orgName(orgName)</span>
+<span class="fc" id="L69">                .courseName(courseName)</span>
+<span class="fc" id="L70">                .term(term)</span>
+<span class="fc" id="L71">                .school(school)</span>
+<span class="fc" id="L72">                .creator(currentUser.getUser())</span>
+<span class="fc" id="L73">                .build();</span>
+<span class="fc" id="L74">        Course savedCourse = courseRepository.save(course);</span>
+
+<span class="fc" id="L76">        return savedCourse;</span>
+    }
+
+      /**
+     * This method returns a list of courses.
+     * @return a list of all courses.
+     */
+    @Operation(summary = &quot;List all courses&quot;)
+    @PreAuthorize(&quot;hasRole('ROLE_ADMIN')&quot;)
+    @GetMapping(&quot;/all&quot;)
+    public Iterable&lt;Course&gt; allCourses(
+    ) {
+<span class="fc" id="L88">        Iterable&lt;Course&gt; courses = courseRepository.findAll();</span>
+<span class="fc" id="L89">        return courses;</span>
+    }
+
+
+    /**
+     * &lt;p&gt;This is the outgoing method, redirecting from Frontiers to GitHub to allow a Course to be linked to a GitHub Organization.
+     * It redirects from Frontiers to the GitHub app installation process, and will return with the {@link #addInstallation(Optional, String, String, Long) addInstallation()} endpoint
+     * &lt;/p&gt;
+     * @param courseId id of the course to be linked to
+     * @return dynamically loaded url to install Frontiers to a Github Organization, with the courseId marked as the state parameter, which GitHub will return.
+     *
+     */
+    @Operation(summary = &quot;Authorize Frontiers to a Github Course&quot;)
+    @PreAuthorize(&quot;hasRole('ROLE_PROFESSOR')&quot;)
+    @GetMapping(&quot;/redirect&quot;)
+    public ResponseEntity&lt;Void&gt; linkCourse(@Parameter Long courseId) throws JsonProcessingException, NoSuchAlgorithmException, InvalidKeySpecException {
+<span class="fc" id="L105">        String newUrl = linkerService.getRedirectUrl();</span>
+<span class="fc" id="L106">        newUrl += &quot;/installations/new?state=&quot;+courseId;</span>
+        //found this convenient solution here: https://stackoverflow.com/questions/29085295/spring-mvc-restcontroller-and-redirect
+<span class="fc" id="L108">        return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY).header(HttpHeaders.LOCATION, newUrl).build();</span>
+    }
+
+
+    /**
+     *
+     * @param installation_id id of the incoming GitHub Organization installation
+     * @param setup_action whether the permissions are installed or updated. Required RequestParam but not used by the method.
+     * @param code token to be exchanged with GitHub to ensure the request is legitimate and not spoofed.
+     * @param state id of the Course to be linked with the GitHub installation.
+     * @return ResponseEntity, returning /success if the course was successfully linked or /noperms if the user does not have the permission to install the application on GitHub. Alternately returns 403 Forbidden if the user is not the creator.
+     */
+    @Operation(summary = &quot;Link a Course to a Github Course&quot;)
+    @PreAuthorize(&quot;hasRole('ROLE_PROFESSOR')&quot;)
+    @GetMapping(&quot;link&quot;)
+    public ResponseEntity&lt;Void&gt; addInstallation(@Parameter(name = &quot;installationId&quot;) @RequestParam Optional&lt;String&gt; installation_id,
+                                                @Parameter(name = &quot;setupAction&quot;) @RequestParam String setup_action,
+                                                @Parameter(name = &quot;code&quot;) @RequestParam String code,
+                                                @Parameter(name = &quot;state&quot;) @RequestParam Long state) throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException {
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        if(installation_id.isEmpty()) {</span>
+<span class="fc" id="L128">            return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY).header(HttpHeaders.LOCATION, &quot;/courses/nopermissions&quot;).build();</span>
+        }else {
+<span class="fc" id="L130">            Course course = courseRepository.findById(state).orElseThrow(() -&gt; new EntityNotFoundException(Course.class, state));</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">            if(!(course.getCreator().getId() ==getCurrentUser().getUser().getId())) {</span>
+<span class="fc" id="L132">                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();</span>
+            }else{
+<span class="fc" id="L134">                String orgName = linkerService.getOrgName(installation_id.get());</span>
+<span class="fc" id="L135">                course.setInstallationId(installation_id.get());</span>
+<span class="fc" id="L136">                course.setOrgName(orgName);</span>
+<span class="fc" id="L137">                courseRepository.save(course);</span>
+<span class="fc" id="L138">                return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY).header(HttpHeaders.LOCATION, &quot;/admin/courses?success=True&amp;course=&quot; + state).build();</span>
+            }
+        }
+    }
+
+    /**
+     * This method handles the InvalidInstallationTypeException.
+     * @param e the exception
+     * @return a map with the type and message of the exception
+     */
+    @ExceptionHandler({ InvalidInstallationTypeException.class })
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Object handleInvalidInstallationType(Throwable e) {
+<span class="fc" id="L151">        return Map.of(</span>
+<span class="fc" id="L152">                &quot;type&quot;, e.getClass().getSimpleName(),</span>
+<span class="fc" id="L153">                &quot;message&quot;, e.getMessage()</span>
+        );
+    }
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
