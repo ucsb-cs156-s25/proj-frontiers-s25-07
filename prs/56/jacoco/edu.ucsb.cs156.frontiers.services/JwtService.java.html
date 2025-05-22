@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">frontiers</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs156.frontiers.services</a> &gt; <span class="el_source">JwtService.java</span></div><h1>JwtService.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs156.frontiers.services;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.ucsb.cs156.frontiers.entities.Course;
+import edu.ucsb.cs156.frontiers.errors.NoLinkedOrganizationException;
+import io.jsonwebtoken.Jwts;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.data.auditing.DateTimeProvider;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Base64;
+import java.util.Date;
+
+@Service
+<span class="fc" id="L30">@Slf4j</span>
+public class JwtService {
+    @Value(&quot;${app.private.key:no-key-present}&quot;)
+    private String privateKey;
+
+    @Value(&quot;${app.client.id:no-client-id}&quot;)
+    private String clientId;
+
+    private final RestTemplate restTemplate;
+
+    private final ObjectMapper objectMapper;
+
+    private final DateTimeProvider  dateTimeProvider;
+
+<span class="fc" id="L44">    public JwtService(RestTemplateBuilder restTemplateBuilder,  ObjectMapper objectMapper, DateTimeProvider dateTimeProvider) {</span>
+<span class="fc" id="L45">        this.restTemplate = restTemplateBuilder.build();</span>
+<span class="fc" id="L46">        this.objectMapper = objectMapper;</span>
+<span class="fc" id="L47">        this.dateTimeProvider = dateTimeProvider;</span>
+<span class="fc" id="L48">    }</span>
+
+    private RSAPrivateKey getPrivateKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
+<span class="fc" id="L51">        String key = privateKey;</span>
+<span class="fc" id="L52">        key = key.replace(&quot;-----BEGIN PRIVATE KEY-----&quot;, &quot;&quot;);</span>
+<span class="fc" id="L53">        key = key.replace(&quot;-----END PRIVATE KEY-----&quot;, &quot;&quot;);</span>
+<span class="fc" id="L54">        key = key.replaceAll(&quot; &quot;, &quot;&quot;);</span>
+<span class="fc" id="L55">        key = key.replaceAll(System.lineSeparator(), &quot;&quot;);</span>
+<span class="fc" id="L56">        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(key.getBytes()));</span>
+<span class="fc" id="L57">        KeyFactory kf = KeyFactory.getInstance(&quot;RSA&quot;);</span>
+<span class="fc" id="L58">        return (RSAPrivateKey) kf.generatePrivate(spec);</span>
+    }
+
+    /**
+     * Method to retrieve a signed JWT that a service can use to authenticate with GitHub as an app installation without permissions to a specific organization.
+     * @return Signed JWT that expires in 5 minutes in the form of a String
+     * @throws InvalidKeySpecException if the key is invalid, the exception will be thrown.
+     */
+    public String getJwt() throws NoSuchAlgorithmException, InvalidKeySpecException {
+<span class="fc" id="L67">        Instant currentTime = Instant.from(dateTimeProvider.getNow().get());</span>
+<span class="fc" id="L68">        String token = Jwts.builder()</span>
+<span class="fc" id="L69">                .issuedAt(Date.from(currentTime.minus(30, ChronoUnit.SECONDS)))</span>
+<span class="fc" id="L70">                .expiration(Date.from(currentTime.plus(5, ChronoUnit.MINUTES)))</span>
+<span class="fc" id="L71">                .issuer(clientId)</span>
+<span class="fc" id="L72">                .signWith(getPrivateKey(), Jwts.SIG.RS256)</span>
+<span class="fc" id="L73">                .compact();</span>
+<span class="fc" id="L74">        return token;</span>
+    }
+
+    /**
+     * Method to retrieve a token to act as a particular app installation in a particular organization
+     *
+     * @param course ID of the particular app installation to act as
+     * @return Token accepted by GitHub to act as a particular installation.
+     */
+    public String getInstallationToken(Course course) throws JsonProcessingException, NoSuchAlgorithmException, InvalidKeySpecException, NoLinkedOrganizationException {
+<span class="fc bfc" id="L84" title="All 4 branches covered.">        if(course.getOrgName() == null || course.getInstallationId() == null){</span>
+<span class="fc" id="L85">            throw new NoLinkedOrganizationException(course.getCourseName());</span>
+        }else {
+<span class="fc" id="L87">            String token = getJwt();</span>
+<span class="fc" id="L88">            String ENDPOINT = &quot;https://api.github.com/app/installations/&quot; + course.getOrgName() + &quot;/access_tokens&quot;;</span>
+<span class="fc" id="L89">            HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L90">            headers.add(&quot;Authorization&quot;, &quot;Bearer &quot; + token);</span>
+<span class="fc" id="L91">            headers.add(&quot;Accept&quot;, &quot;application/vnd.github+json&quot;);</span>
+<span class="fc" id="L92">            headers.add(&quot;X-GitHub-Api-Version&quot;, &quot;2022-11-28&quot;);</span>
+<span class="fc" id="L93">            HttpEntity&lt;String&gt; entity = new HttpEntity&lt;&gt;(headers);</span>
+<span class="fc" id="L94">            ResponseEntity&lt;String&gt; response = restTemplate.exchange(ENDPOINT, HttpMethod.POST, entity, String.class);</span>
+<span class="fc" id="L95">            JsonNode responseJson = objectMapper.readTree(response.getBody());</span>
+<span class="fc" id="L96">            String installationToken = responseJson.get(&quot;token&quot;).asText();</span>
+<span class="fc" id="L97">            return installationToken;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

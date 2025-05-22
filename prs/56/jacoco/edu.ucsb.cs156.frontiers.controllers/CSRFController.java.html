@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CSRFController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">frontiers</a> &gt; <a href="index.source.html" class="el_package">edu.ucsb.cs156.frontiers.controllers</a> &gt; <span class="el_source">CSRFController.java</span></div><h1>CSRFController.java</h1><pre class="source lang-java linenums">package edu.ucsb.cs156.frontiers.controllers;
+
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+  
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+/**
+ * The CSRF controller is used to get a CSRF token. 
+ * This is only enabled in the development profile, 
+ * and is used to test APIs with Postman or swagger.ui/
+ * 
+ * For more information on CSRF, do a web search on &quot;Cross-Site Request Forgery&quot;.
+ */
+
+@Profile(&quot;development&quot;)
+@Tag(name = &quot;CSRF (enabled only in development; can be used with Postman to test APIs)&quot;)
+@RestController
+<span class="fc" id="L23">public class CSRFController {</span>
+
+  /**
+   * This method returns a CSRF token.
+   * @param token the CSRF token, injected by Spring automatically
+   * @return the CSRF token
+   */
+  @Operation(summary= &quot;Get a CSRF Token&quot;)
+  @GetMapping(&quot;/csrf&quot;)
+  public CsrfToken csrf(CsrfToken token) {
+<span class="fc" id="L33">    return token;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
