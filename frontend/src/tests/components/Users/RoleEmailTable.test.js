@@ -69,4 +69,14 @@ describe("RoleEmailTable", () => {
       expect(btn).toHaveClass("btn-danger");
     });
   });
+
+  test("Delete button has correct data-testid using table ID prefix", () => {
+    render(
+      <RoleEmailTable data={testData} deleteCallback={mockDeleteCallback} />,
+    );
+    const deleteButton = screen.getByTestId(
+      "RoleEmailTable-cell-row-0-col-Delete-button",
+    );
+    expect(deleteButton).toBeInTheDocument();
+  });
 });
