@@ -214,11 +214,11 @@ import org.springframework.transaction.annotation.Transactional;
 <span class="fc" id="L214">        RosterStudent rosterStudent = rosterStudentRepository.findById(rosterStudentId)</span>
 <span class="fc" id="L215">                .orElseThrow(() -&gt; new EntityNotFoundException(RosterStudent.class, rosterStudentId));</span>
 
-<span class="fc bfc" id="L217" title="All 2 branches covered.">        if (currentUser.getId() != rosterStudent.getUser().getId()) {</span>
+<span class="fc bfc" id="L217" title="All 4 branches covered.">        if (rosterStudent.getUser() == null || currentUser.getId() != rosterStudent.getUser().getId()) {</span>
 <span class="fc" id="L218">            throw new AccessDeniedException(&quot;User not authorized to link this roster student&quot;);</span>
         }
 
-<span class="fc bfc" id="L221" title="All 4 branches covered.">        if (rosterStudent.getGithubId() != 0 &amp;&amp; rosterStudent.getGithubLogin() != null ) {</span>
+<span class="fc bfc" id="L221" title="All 6 branches covered.">        if ((rosterStudent.getGithubId() != null &amp;&amp; rosterStudent.getGithubId() != 0) &amp;&amp; rosterStudent.getGithubLogin() != null) {</span>
 <span class="fc" id="L222">            return ResponseEntity.badRequest().body(&quot;This roster student is already linked to a GitHub account&quot;);</span>
         }
 
