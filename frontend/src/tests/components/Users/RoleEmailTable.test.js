@@ -19,6 +19,7 @@ describe("RoleEmailTable", () => {
       <RoleEmailTable data={testData} deleteCallback={mockDeleteCallback} />,
     );
 
+    expect(screen.getByText("Email")).toBeInTheDocument();
     expect(screen.getByText("admin@example.com")).toBeInTheDocument();
     expect(screen.getByText("user@example.org")).toBeInTheDocument();
 
@@ -32,7 +33,7 @@ describe("RoleEmailTable", () => {
     );
 
     const buttons = screen.getAllByRole("button");
-    expect(buttons.length).toBe(testData.length); // one button per row?
+    expect(buttons.length).toBe(testData.length);
 
     fireEvent.click(buttons[0]);
 
@@ -43,7 +44,29 @@ describe("RoleEmailTable", () => {
     render(
       <RoleEmailTable data={testData} deleteCallback={mockDeleteCallback} />,
     );
-    const deleteButton = screen.getAllByRole("button", { name: /delete/i })[0];
-    expect(deleteButton).toBeInTheDocument();
+    const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
+    expect(deleteButtons.length).toBe(testData.length);
+    deleteButtons.forEach((btn) => {
+      expect(btn).toHaveTextContent(/delete/i);
+    });
+  });
+
+  test("renders table with correct testid", () => {
+    render(
+      <RoleEmailTable data={testData} deleteCallback={mockDeleteCallback} />,
+    );
+    expect(
+      screen.getByTestId("RoleEmailTable-header-email"),
+    ).toBeInTheDocument();
+  });
+
+  test("Delete button has correct Bootstrap class", () => {
+    render(
+      <RoleEmailTable data={testData} deleteCallback={mockDeleteCallback} />,
+    );
+    const deleteButtons = screen.getAllByRole("button", { name: /delete/i });
+    deleteButtons.forEach((btn) => {
+      expect(btn).toHaveClass("btn-danger");
+    });
   });
 });
