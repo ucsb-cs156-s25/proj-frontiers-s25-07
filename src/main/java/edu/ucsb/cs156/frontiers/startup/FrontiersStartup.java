@@ -19,8 +19,8 @@ import edu.ucsb.cs156.frontiers.services.jobs.JobContextConsumer;
 public class FrontiersStartup {
 
     @Value("#{'${app.admin.emails}'.split(',')}")
-    private List<String> adminEmails;
-    @Autowired private AdminRepository adminRepository;
+    List<String> adminEmails;
+    @Autowired AdminRepository adminRepository;
 
   /**
    * Called once at application startup time . Put code here if you want it to run once each time
