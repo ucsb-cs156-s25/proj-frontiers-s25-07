@@ -26,10 +26,23 @@ describe("RoleEmailTable", () => {
 
   test("calls deleteCallback when Delete button clicked", () => {
     render(<RoleEmailTable data={testData} deleteCallback={mockDeleteCallback} />);
-
-    const firstDeleteButton = screen.getAllByRole("button", { name: /delete/i })[0];
-    fireEvent.click(firstDeleteButton);
-
+  
+    const buttons = screen.getAllByRole("button");
+    expect(buttons.length).toBe(testData.length);  // one button per row?
+  
+    fireEvent.click(buttons[0]);
+  
     expect(mockDeleteCallback).toHaveBeenCalledTimes(1);
+  });
+  
+  test("renders Delete button with correct label", () => {
+    render(<RoleEmailTable data={testData} deleteCallback={mockDeleteCallback} />);
+    const deleteButton = screen.getAllByRole("button", { name: /delete/i })[0];
+    expect(deleteButton).toBeInTheDocument();
+  });
+
+  test("OurTable has correct testid attribute", () => {
+    const { container } = render(<RoleEmailTable data={testData} deleteCallback={mockDeleteCallback} />);
+    expect(container.querySelector('[data-testid="RoleEmailTable"]')).toBeInTheDocument();
   });
 });
