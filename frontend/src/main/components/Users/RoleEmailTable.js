@@ -1,5 +1,5 @@
 import OurTable from "main/components/OurTable";
-import { ButtonColumn } from "main/components/OurTable"; 
+import { ButtonColumn } from "main/components/OurTable";
 
 export default function RoleEmailTable({ data, deleteCallback }) {
   const columns = [
