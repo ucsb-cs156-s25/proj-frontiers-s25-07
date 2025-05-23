@@ -1,6 +1,6 @@
 import React from "react";
 import { useBackend } from "main/utils/useBackend";
-
+import { useBackendMutation } from "main/utils/useBackend";
 import BasicLayout from "main/layouts/BasicLayout/BasicLayout";
 import RoleEmailTable from "main/components/Users/RoleEmailTable";
 
@@ -14,10 +14,36 @@ export default function AdminsIndexPage({ admins: adminsFromProps }) {
     error: _error,
     status: _status,
   } = useBackend(
-    ["/api/admins/all"],
-    { method: "GET", url: "/api/admins/all" },
+    ["/api/admin/all"],
+    { method: "GET", url: "/api/admin/all" },
     [],
   );
+
+  const deleteMutation = useBackendMutation(
+    (cell) => ({
+      url: "/api/admin/delete",
+      method: "DELETE",
+      params: { email: cell.row.original.email },
+    }),
+    {
+      onSuccess: () => {
+        setErrorMessage(""); // clear error on success
+      },
+      onError: (error) => {
+        if (error.response?.status === 403) {
+          setErrorMessage("You do not have permission to delete this admin.");
+        } else {
+          setErrorMessage("An unexpected error occurred. Please try again.");
+        }
+      },
+    },
+    ["/api/admin/all"]
+  );
+
+  // Callback function passed to the table
+  const deleteCallback = (cell) => {
+    deleteMutation.mutate(cell);
+  };
 
   // Use props admins if provided, else fallback to backend data
   const admins = adminsFromProps || adminsFromBackend;
@@ -35,7 +61,7 @@ export default function AdminsIndexPage({ admins: adminsFromProps }) {
         >
           New Admin
         </Button>
-        <RoleEmailTable data={admins} />
+        <RoleEmailTable data={admins} deleteCallback={deleteCallback} />
       </div>
     </BasicLayout>
   );
