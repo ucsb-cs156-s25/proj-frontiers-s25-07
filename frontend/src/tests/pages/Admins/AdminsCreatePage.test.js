@@ -295,4 +295,46 @@ describe("AdminsCreatePage tests", () => {
 
     invalidateSpy.mockRestore();
   });
+
+  test("handles form submission with empty params object mutation", async () => {
+    // Create a QueryClient instance for this test
+    const queryClient = new QueryClient();
+
+    // Save original axios.post to restore later
+    const originalPost = axios.post;
+
+    // Override axios.post just for this test
+    axios.post = async (url, data) => {
+      if (url === "/api/admin/post" && data.email === "testadmin@example.com") {
+        return Promise.resolve({ data: { message: "Admin created" } });
+      }
+      return Promise.reject(new Error("Unexpected call"));
+    };
+
+    try {
+      render(
+        <QueryClientProvider client={queryClient}>
+          <AdminsCreatePage />
+        </QueryClientProvider>,
+      );
+
+      const emailInput = screen.getByLabelText(/email/i);
+      const submitButton = screen.getByRole("button", {
+        name: /create admin/i,
+      });
+
+      fireEvent.change(emailInput, {
+        target: { value: "testadmin@example.com" },
+      });
+      fireEvent.click(submitButton);
+
+      await waitFor(() => {
+        // Check that success message is shown
+        expect(screen.getByText(/admin created/i)).toBeInTheDocument();
+      });
+    } finally {
+      // Restore original axios.post after test
+      axios.post = originalPost;
+    }
+  });
 });

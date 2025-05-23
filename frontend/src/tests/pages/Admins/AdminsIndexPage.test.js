@@ -1117,4 +1117,85 @@ describe("AdminsIndexPage mutation survival tests", () => {
     // The alert div should NOT be in the document because the mutation replaced the condition with false
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  test("handles empty method string in axios request to /api/admin/all", async () => {
+    const mock = new MockAdapter(axios);
+
+    // Mock the GET request (even though method is empty, backend still needs to respond)
+    mock.onGet("/api/admin/all").reply(200, [{ email: "user@example.com" }]);
+
+    const queryClient = new QueryClient();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <AdminsIndexPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    // Wait for the email to appear, meaning data loaded successfully
+    await waitFor(() => {
+      expect(screen.getByText("user@example.com")).toBeInTheDocument();
+    });
+  });
+
+  const renderWithClient = (ui) => {
+    const queryClient = new QueryClient();
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>{ui}</MemoryRouter>
+      </QueryClientProvider>,
+    );
+  };
+
+  test("mutation with empty onSuccess allows deletion and refreshes admin list", async () => {
+    // Create mock adapter instance scoped inside this test
+    const mockAxios = new MockAdapter(axios);
+
+    const adminsBeforeDelete = [
+      { email: "user@example.com" },
+      { email: "admin@example.com" },
+    ];
+    const adminsAfterDelete = [{ email: "admin@example.com" }];
+
+    // Initial GET returns adminsBeforeDelete
+    mockAxios.onGet("/api/admin/all").reply(200, adminsBeforeDelete);
+
+    // Render component
+    renderWithClient(<AdminsIndexPage />);
+
+    // Wait for initial admin email to appear
+    await waitFor(() =>
+      expect(screen.getByText("user@example.com")).toBeInTheDocument(),
+    );
+
+    mockAxios.onDelete("/api/admin/delete").reply((config) => {
+      const requestData = JSON.parse(config.data);
+      if (requestData.email === "user@example.com") {
+        return [200, {}];
+      }
+      return [400];
+    });
+
+    // After delete, GET returns adminsAfterDelete
+    mockAxios.onGet("/api/admin/all").reply(200, adminsAfterDelete);
+
+    // Click the delete button for first admin
+    const deleteButton = screen.getByTestId(
+      "RoleEmailTable-cell-row-0-col-Delete-button",
+    );
+    await userEvent.click(deleteButton);
+
+    // Wait for deleted admin to be removed from DOM
+    await waitFor(() =>
+      expect(screen.queryByText("user@example.com")).not.toBeInTheDocument(),
+    );
+
+    // Confirm remaining admin still shown
+    expect(screen.getByText("admin@example.com")).toBeInTheDocument();
+
+    // Clean up mock
+    mockAxios.restore();
+  });
 });
