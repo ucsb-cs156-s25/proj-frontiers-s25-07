@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";  // <-- import useState here
 import { useBackend } from "main/utils/useBackend";
 import { useBackendMutation } from "main/utils/useBackend";
 import BasicLayout from "main/layouts/BasicLayout/BasicLayout";
@@ -9,6 +9,9 @@ import { Link } from "react-router-dom";
 
 // Accept optional admins prop for Storybook or testing
 export default function AdminsIndexPage({ admins: adminsFromProps }) {
+  // Declare errorMessage state
+  const [errorMessage, setErrorMessage] = useState("");
+
   const {
     data: adminsFromBackend,
     error: _error,
@@ -52,6 +55,13 @@ export default function AdminsIndexPage({ admins: adminsFromProps }) {
     <BasicLayout>
       <div className="pt-2">
         <h1>Admins</h1>
+
+        {errorMessage && (
+          <div className="alert alert-danger" role="alert" data-testid="AdminsIndexPage-error">
+            {errorMessage}
+          </div>
+        )}
+
         <Button
           variant="primary"
           as={Link}
