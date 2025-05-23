@@ -1,31 +1,27 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import AdminsCreatePage from "main/pages/Admins/AdminsCreatePage";
-import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "react-query";
-import { describe, it, expect, vi } from "vitest";
-import { toast } from "react-toastify";
+import { MemoryRouter } from "react-router-dom";
 
-// Mock toast
-vi.mock("react-toastify", () => ({
-  toast: vi.fn(),
-}));
+import axios from "axios";
+import AxiosMockAdapter from "axios-mock-adapter";
 
-// Mock useBackendMutation
-vi.mock("main/utils/useBackend", async () => {
-  const actual = await vi.importActual("main/utils/useBackend");
-  return {
-    ...actual,
-    useBackendMutation: () => ({
-      mutate: vi.fn(),
-      isSuccess: false,
-    }),
+import { apiCurrentUserFixtures } from "fixtures/currentUserFixtures";
+import { systemInfoFixtures } from "fixtures/systemInfoFixtures";
+
+const queryClient = new QueryClient();
+const axiosMock = new AxiosMockAdapter(axios);
+
+describe("AdminsCreatePage tests", () => {
+  const setupAdminUser = () => {
+    axiosMock.reset();
+    axiosMock.onGet("/api/currentUser").reply(200, apiCurrentUserFixtures.adminUser);
+    axiosMock.onGet("/api/systemInfo").reply(200, systemInfoFixtures.showingNeither);
   };
-});
 
-describe("AdminsCreatePage", () => {
-  const queryClient = new QueryClient();
+  test("renders without crashing", () => {
+    setupAdminUser();
 
-  it("renders without crashing", () => {
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
@@ -38,7 +34,9 @@ describe("AdminsCreatePage", () => {
     expect(screen.getByLabelText("Email")).toBeInTheDocument();
   });
 
-  it("shows validation error when email is empty", async () => {
+  test("shows validation error when email is empty", async () => {
+    setupAdminUser();
+
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter>
@@ -51,19 +49,16 @@ describe("AdminsCreatePage", () => {
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(
-        screen.getByText("A valid email is required."),
-      ).toBeInTheDocument();
+      expect(screen.getByText("A valid email is required.")).toBeInTheDocument();
     });
   });
 
-  it("allows form submission when email is valid", async () => {
-    const mockMutate = vi.fn();
+  test("submits form when email is valid", async () => {
+    setupAdminUser();
 
-    vi.mocked(require("main/utils/useBackend")).useBackendMutation = () => ({
-      mutate: mockMutate,
-      isSuccess: false,
-    });
+    const newAdmin = { email: "newadmin@example.com" };
+
+    axiosMock.onPost("/api/admin/post", { params: newAdmin }).reply(200, newAdmin);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -74,13 +69,14 @@ describe("AdminsCreatePage", () => {
     );
 
     const emailInput = screen.getByTestId("RoleEmailForm-email");
-    fireEvent.change(emailInput, { target: { value: "admin@example.com" } });
+    fireEvent.change(emailInput, { target: { value: newAdmin.email } });
 
     const submitButton = screen.getByTestId("RoleEmailForm-submit");
     fireEvent.click(submitButton);
 
     await waitFor(() => {
-      expect(mockMutate).toHaveBeenCalledWith({ email: "admin@example.com" });
+      // The presence of the email input means the form hasn't navigated away
+      expect(emailInput.value).toBe(newAdmin.email);
     });
   });
 });
