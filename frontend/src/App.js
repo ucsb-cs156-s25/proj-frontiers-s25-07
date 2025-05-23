@@ -8,6 +8,7 @@ import { hasRole, useCurrentUser } from "main/utils/currentUser";
 import "bootstrap/dist/css/bootstrap.css";
 import "react-toastify/dist/ReactToastify.css";
 import CoursesIndexPage from "main/pages/Courses/CoursesIndexPage";
+import AdminsIndexPage from "main/pages/Admins/AdminsIndexPage";
 
 function App() {
   const { data: currentUser } = useCurrentUser();
@@ -22,6 +23,9 @@ function App() {
         )}
         {hasRole(currentUser, "ROLE_ADMIN") && (
           <Route exact path="/admin/courses" element={<CoursesIndexPage />} />
+        )}
+        {hasRole(currentUser, "ROLE_ADMIN") && (
+          <Route exact path="/admin/admins" element={<AdminsIndexPage />} />
         )}
       </Routes>
     </BrowserRouter>
