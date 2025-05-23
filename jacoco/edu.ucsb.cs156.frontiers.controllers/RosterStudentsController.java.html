@@ -166,7 +166,7 @@ import org.springframework.transaction.annotation.Transactional;
     public InsertStatus upsertStudent(RosterStudent student, Course course) {
 <span class="fc" id="L167">        Optional&lt;RosterStudent&gt; existingStudent = rosterStudentRepository.findByCourseIdAndStudentId(course.getId(),</span>
 <span class="fc" id="L168">                student.getStudentId());</span>
-<span class="fc" id="L169">        String convertedEmail = student.getEmail().replace(&quot;@umail.ucsb.edu&quot;,&quot;@ucsb.edu&quot;);</span>
+<span class="fc" id="L169">        String convertedEmail = student.getEmail().replace(&quot;@umail.ucsb.edu&quot;, &quot;@ucsb.edu&quot;);</span>
 <span class="fc bfc" id="L170" title="All 2 branches covered.">        if (existingStudent.isPresent()) {</span>
 <span class="fc" id="L171">            RosterStudent existingStudentObj = existingStudent.get();</span>
 <span class="fc" id="L172">            existingStudentObj.setRosterStatus(RosterStatus.ROSTER);</span>
@@ -191,50 +191,54 @@ import org.springframework.transaction.annotation.Transactional;
 
     @PreAuthorize(&quot;hasRole('ROLE_PROFESSOR')&quot;)
     @PostMapping(&quot;/updateCourseMembership&quot;)
-    public Job updateCourseMembership(@Parameter(name = &quot;courseId&quot;, description = &quot;Course ID&quot;) @RequestParam Long courseId) throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException {
-<span class="fc" id="L195">        Course course = courseRepository.findById(courseId).orElseThrow(() -&gt; new EntityNotFoundException(Course.class, courseId));</span>
-<span class="fc bfc" id="L196" title="All 4 branches covered.">        if(course.getInstallationId() == null || course.getOrgName() == null){</span>
-<span class="fc" id="L197">            throw new NoLinkedOrganizationException(course.getCourseName());</span>
-        }else{
-<span class="fc" id="L199">            UpdateOrgMembershipJob job = UpdateOrgMembershipJob.builder()</span>
-<span class="fc" id="L200">                    .rosterStudentRepository(rosterStudentRepository)</span>
-<span class="fc" id="L201">                    .organizationMemberService(organizationMemberService)</span>
-<span class="fc" id="L202">                    .course(course)</span>
-<span class="fc" id="L203">                    .build();</span>
+    public Job updateCourseMembership(
+            @Parameter(name = &quot;courseId&quot;, description = &quot;Course ID&quot;) @RequestParam Long courseId)
+            throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException {
+<span class="fc" id="L197">        Course course = courseRepository.findById(courseId)</span>
+<span class="fc" id="L198">                .orElseThrow(() -&gt; new EntityNotFoundException(Course.class, courseId));</span>
+<span class="fc bfc" id="L199" title="All 4 branches covered.">        if (course.getInstallationId() == null || course.getOrgName() == null) {</span>
+<span class="fc" id="L200">            throw new NoLinkedOrganizationException(course.getCourseName());</span>
+        } else {
+<span class="fc" id="L202">            UpdateOrgMembershipJob job = UpdateOrgMembershipJob.builder()</span>
+<span class="fc" id="L203">                    .rosterStudentRepository(rosterStudentRepository)</span>
+<span class="fc" id="L204">                    .organizationMemberService(organizationMemberService)</span>
+<span class="fc" id="L205">                    .course(course)</span>
+<span class="fc" id="L206">                    .build();</span>
 
-<span class="fc" id="L205">            return jobService.runAsJob(job);</span>
+<span class="fc" id="L208">            return jobService.runAsJob(job);</span>
         }
     }
-    
+
     @Operation(summary = &quot;Link a Roster Student to a Github Account&quot;)
     @PreAuthorize(&quot;hasRole('ROLE_USER')&quot;)
     @PutMapping(&quot;/linkGitHub&quot;)
-    public ResponseEntity&lt;String&gt; linkGitHub(@Parameter(name = &quot;rosterStudentId&quot;, description = &quot;Roster Student to be linked to&quot;) @RequestParam Long rosterStudentId){
-<span class="fc" id="L213">        User currentUser = currentUserService.getUser();</span>
-<span class="fc" id="L214">        RosterStudent rosterStudent = rosterStudentRepository.findById(rosterStudentId)</span>
-<span class="fc" id="L215">                .orElseThrow(() -&gt; new EntityNotFoundException(RosterStudent.class, rosterStudentId));</span>
+    public ResponseEntity&lt;String&gt; linkGitHub(
+            @Parameter(name = &quot;rosterStudentId&quot;, description = &quot;Roster Student to be linked to&quot;) @RequestParam Long rosterStudentId) {
+<span class="fc" id="L217">        User currentUser = currentUserService.getUser();</span>
+<span class="fc" id="L218">        RosterStudent rosterStudent = rosterStudentRepository.findById(rosterStudentId)</span>
+<span class="fc" id="L219">                .orElseThrow(() -&gt; new EntityNotFoundException(RosterStudent.class, rosterStudentId));</span>
 
-<span class="fc bfc" id="L217" title="All 4 branches covered.">        if (rosterStudent.getUser() == null || currentUser.getId() != rosterStudent.getUser().getId()) {</span>
-<span class="fc" id="L218">            throw new AccessDeniedException(&quot;User not authorized to link this roster student&quot;);</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">        if (currentUser.getId() != rosterStudent.getUser().getId()) {</span>
+<span class="fc" id="L222">            throw new AccessDeniedException(&quot;User not authorized to link this roster student&quot;);</span>
         }
 
-<span class="fc bfc" id="L221" title="All 6 branches covered.">        if ((rosterStudent.getGithubId() != null &amp;&amp; rosterStudent.getGithubId() != 0) &amp;&amp; rosterStudent.getGithubLogin() != null) {</span>
-<span class="fc" id="L222">            return ResponseEntity.badRequest().body(&quot;This roster student is already linked to a GitHub account&quot;);</span>
+<span class="fc bfc" id="L225" title="All 4 branches covered.">        if (rosterStudent.getGithubId() != 0 &amp;&amp; rosterStudent.getGithubLogin() != null) {</span>
+<span class="fc" id="L226">            return ResponseEntity.badRequest().body(&quot;This roster student is already linked to a GitHub account&quot;);</span>
         }
 
-<span class="fc" id="L225">        rosterStudent.setGithubId(currentUser.getGithubId());</span>
-<span class="fc" id="L226">        rosterStudent.setGithubLogin(currentUser.getGithubLogin());</span>
-<span class="fc" id="L227">        rosterStudentRepository.save(rosterStudent);</span>
-<span class="fc" id="L228">        return ResponseEntity.ok(&quot;Successfully linked GitHub account to roster student&quot;);</span>
+<span class="fc" id="L229">        rosterStudent.setGithubId(currentUser.getGithubId());</span>
+<span class="fc" id="L230">        rosterStudent.setGithubLogin(currentUser.getGithubLogin());</span>
+<span class="fc" id="L231">        rosterStudentRepository.save(rosterStudent);</span>
+<span class="fc" id="L232">        return ResponseEntity.ok(&quot;Successfully linked GitHub account to roster student&quot;);</span>
     }
 
     @Operation(summary = &quot;Get Associated Roster Students with a User&quot;)
     @PreAuthorize(&quot;hasRole('ROLE_USER')&quot;)
     @GetMapping(&quot;/associatedRosterStudents&quot;)
-    public Iterable&lt;RosterStudent&gt; getAssociatedRosterStudents(){
-<span class="fc" id="L235">        User currentUser = currentUserService.getUser();</span>
-<span class="fc" id="L236">        Iterable&lt;RosterStudent&gt; rosterStudents = rosterStudentRepository.findAllByUser((currentUser));</span>
-<span class="fc" id="L237">        return rosterStudents;</span>
+    public Iterable&lt;RosterStudent&gt; getAssociatedRosterStudents() {
+<span class="fc" id="L239">        User currentUser = currentUserService.getUser();</span>
+<span class="fc" id="L240">        Iterable&lt;RosterStudent&gt; rosterStudents = rosterStudentRepository.findAllByUser((currentUser));</span>
+<span class="fc" id="L241">        return rosterStudents;</span>
     }
 
     @Operation(summary = &quot;Update a roster student&quot;)
@@ -246,27 +250,27 @@ import org.springframework.transaction.annotation.Transactional;
             @Parameter(name = &quot;lastName&quot;) @RequestParam(required = false) String lastName,
             @Parameter(name = &quot;studentId&quot;) @RequestParam(required = false) String studentId) throws EntityNotFoundException {
         
-<span class="fc bfc" id="L249" title="All 6 branches covered.">        if(firstName == null || lastName == null || studentId == null ||</span>
-<span class="fc bfc" id="L250" title="All 6 branches covered.">            firstName.trim().isEmpty() || lastName.trim().isEmpty() || studentId.trim().isEmpty()){</span>
-<span class="fc" id="L251">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Required fields cannot be empty&quot;);</span>
+<span class="fc bfc" id="L253" title="All 6 branches covered.">        if(firstName == null || lastName == null || studentId == null ||</span>
+<span class="fc bfc" id="L254" title="All 6 branches covered.">            firstName.trim().isEmpty() || lastName.trim().isEmpty() || studentId.trim().isEmpty()){</span>
+<span class="fc" id="L255">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Required fields cannot be empty&quot;);</span>
         }
 
-<span class="fc" id="L254">        RosterStudent rosterStudent = rosterStudentRepository.findById(id)</span>
-<span class="fc" id="L255">                .orElseThrow(() -&gt; new EntityNotFoundException(RosterStudent.class, id));</span>
+<span class="fc" id="L258">        RosterStudent rosterStudent = rosterStudentRepository.findById(id)</span>
+<span class="fc" id="L259">                .orElseThrow(() -&gt; new EntityNotFoundException(RosterStudent.class, id));</span>
 
-<span class="fc bfc" id="L257" title="All 2 branches covered.">        if(!rosterStudent.getStudentId().trim().equals(studentId.trim())){</span>
-<span class="fc" id="L258">            Optional&lt;RosterStudent&gt; existingStudent = rosterStudentRepository.findByCourseIdAndStudentId(</span>
-<span class="fc" id="L259">                    rosterStudent.getCourse().getId(), studentId.trim());</span>
-<span class="fc bfc" id="L260" title="All 2 branches covered.">            if (existingStudent.isPresent()){</span>
-<span class="fc" id="L261">                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Student ID already exists in this course&quot;);</span>
+<span class="fc bfc" id="L261" title="All 2 branches covered.">        if(!rosterStudent.getStudentId().trim().equals(studentId.trim())){</span>
+<span class="fc" id="L262">            Optional&lt;RosterStudent&gt; existingStudent = rosterStudentRepository.findByCourseIdAndStudentId(</span>
+<span class="fc" id="L263">                    rosterStudent.getCourse().getId(), studentId.trim());</span>
+<span class="fc bfc" id="L264" title="All 2 branches covered.">            if (existingStudent.isPresent()){</span>
+<span class="fc" id="L265">                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, &quot;Student ID already exists in this course&quot;);</span>
             }
         }
 
-<span class="fc" id="L265">        rosterStudent.setFirstName(firstName.trim());</span>
-<span class="fc" id="L266">        rosterStudent.setLastName(lastName.trim());</span>
-<span class="fc" id="L267">        rosterStudent.setStudentId(studentId.trim());</span>
+<span class="fc" id="L269">        rosterStudent.setFirstName(firstName.trim());</span>
+<span class="fc" id="L270">        rosterStudent.setLastName(lastName.trim());</span>
+<span class="fc" id="L271">        rosterStudent.setStudentId(studentId.trim());</span>
 
-<span class="fc" id="L269">        return rosterStudentRepository.save(rosterStudent);</span>
+<span class="fc" id="L273">        return rosterStudentRepository.save(rosterStudent);</span>
     }
 
     @Operation(summary = &quot;Delete a roster student&quot;)
@@ -274,13 +278,13 @@ import org.springframework.transaction.annotation.Transactional;
     @DeleteMapping(&quot;/delete&quot;)
     @Transactional
     public ResponseEntity&lt;String&gt; deleteRosterStudent(@Parameter(name = &quot;id&quot;) @RequestParam Long id) throws EntityNotFoundException{
-<span class="fc" id="L277">        RosterStudent rosterStudent = rosterStudentRepository.findById(id)</span>
-<span class="fc" id="L278">                .orElseThrow(() -&gt; new EntityNotFoundException(RosterStudent.class, id));</span>
-<span class="fc" id="L279">        Course course = rosterStudent.getCourse();</span>
-<span class="fc" id="L280">        course.getRosterStudents().remove(rosterStudent);</span>
-<span class="fc" id="L281">        rosterStudentRepository.delete(rosterStudent);</span>
-<span class="fc" id="L282">        courseRepository.save(course);</span>
-<span class="fc" id="L283">        return ResponseEntity.ok(&quot;Successfully deleted roster student and removed him/her from the course list&quot;);</span>
+<span class="fc" id="L281">        RosterStudent rosterStudent = rosterStudentRepository.findById(id)</span>
+<span class="fc" id="L282">                .orElseThrow(() -&gt; new EntityNotFoundException(RosterStudent.class, id));</span>
+<span class="fc" id="L283">        Course course = rosterStudent.getCourse();</span>
+<span class="fc" id="L284">        course.getRosterStudents().remove(rosterStudent);</span>
+<span class="fc" id="L285">        rosterStudentRepository.delete(rosterStudent);</span>
+<span class="fc" id="L286">        courseRepository.save(course);</span>
+<span class="fc" id="L287">        return ResponseEntity.ok(&quot;Successfully deleted roster student and removed him/her from the course list&quot;);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
