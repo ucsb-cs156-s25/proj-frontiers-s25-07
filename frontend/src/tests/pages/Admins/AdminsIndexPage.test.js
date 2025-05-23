@@ -40,7 +40,7 @@ describe("AdminsIndexPage tests", () => {
 
   test("Renders for admin user", async () => {
     setupAdminUser();
-    axiosMock.onGet("/api/admins/all").reply(200, []);
+    axiosMock.onGet("/api/admin/all").reply(200, []);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -57,7 +57,7 @@ describe("AdminsIndexPage tests", () => {
 
   test("renders three admins correctly for admin user", async () => {
     setupAdminUser();
-    axiosMock.onGet("/api/admins/all").reply(200, adminsFixtures.threeAdmins);
+    axiosMock.onGet("/api/admin/all").reply(200, adminsFixtures.threeAdmins);
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -83,7 +83,7 @@ describe("AdminsIndexPage tests", () => {
   test("renders empty table when backend unavailable, admin only", async () => {
     setupAdminUser();
 
-    axiosMock.onGet("/api/admins/all").timeout();
+    axiosMock.onGet("/api/admin/all").timeout();
 
     const restoreConsole = mockConsole();
 
@@ -101,7 +101,7 @@ describe("AdminsIndexPage tests", () => {
 
     const errorMessage = console.error.mock.calls[0][0];
     expect(errorMessage).toMatch(
-      "Error communicating with backend via GET on /api/admins/all",
+      "Error communicating with backend via GET on /api/admin/all",
     );
     restoreConsole();
   });

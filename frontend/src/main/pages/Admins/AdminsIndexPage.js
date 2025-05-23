@@ -1,4 +1,4 @@
-import React, { useState } from "react";  // <-- import useState here
+import React, { useState } from "react"; // <-- import useState here
 import { useBackend } from "main/utils/useBackend";
 import { useBackendMutation } from "main/utils/useBackend";
 import BasicLayout from "main/layouts/BasicLayout/BasicLayout";
@@ -40,7 +40,7 @@ export default function AdminsIndexPage({ admins: adminsFromProps }) {
         }
       },
     },
-    ["/api/admin/all"]
+    ["/api/admin/all"],
   );
 
   // Callback function passed to the table
@@ -57,7 +57,11 @@ export default function AdminsIndexPage({ admins: adminsFromProps }) {
         <h1>Admins</h1>
 
         {errorMessage && (
-          <div className="alert alert-danger" role="alert" data-testid="AdminsIndexPage-error">
+          <div
+            className="alert alert-danger"
+            role="alert"
+            data-testid="AdminsIndexPage-error"
+          >
             {errorMessage}
           </div>
         )}
