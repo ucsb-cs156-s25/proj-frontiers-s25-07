@@ -43,7 +43,7 @@ function RosterStudentForm({
           data-testid={testIdPrefix + "-firstName"}
           id="firstName"
           type="text"
-          isInvalid={Boolean(errors.orgTranslationShort)}
+          isInvalid={Boolean(errors.firstName)}
           {...register("firstName", {
             required: "First Name is required.",
           })}
