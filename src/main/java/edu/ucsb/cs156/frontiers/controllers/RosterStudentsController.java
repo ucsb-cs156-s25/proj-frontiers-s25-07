@@ -218,11 +218,11 @@ public class RosterStudentsController extends ApiController {
         RosterStudent rosterStudent = rosterStudentRepository.findById(rosterStudentId)
                 .orElseThrow(() -> new EntityNotFoundException(RosterStudent.class, rosterStudentId));
 
-        if (currentUser.getId() != rosterStudent.getUser().getId()) {
+        if (rosterStudent.getUser() == null || currentUser.getId() != rosterStudent.getUser().getId()) {
             throw new AccessDeniedException("User not authorized to link this roster student");
         }
 
-        if (rosterStudent.getGithubId() != 0 && rosterStudent.getGithubLogin() != null) {
+        if ((rosterStudent.getGithubId() != null && rosterStudent.getGithubId() != 0) && rosterStudent.getGithubLogin() != null) {
             return ResponseEntity.badRequest().body("This roster student is already linked to a GitHub account");
         }
 
