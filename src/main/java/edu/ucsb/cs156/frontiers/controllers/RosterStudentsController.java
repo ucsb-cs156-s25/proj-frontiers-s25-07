@@ -166,7 +166,7 @@ public class RosterStudentsController extends ApiController {
     public InsertStatus upsertStudent(RosterStudent student, Course course) {
         Optional<RosterStudent> existingStudent = rosterStudentRepository.findByCourseIdAndStudentId(course.getId(),
                 student.getStudentId());
-        String convertedEmail = student.getEmail().replace("@umail.ucsb.edu","@ucsb.edu");
+        String convertedEmail = student.getEmail().replace("@umail.ucsb.edu", "@ucsb.edu");
         if (existingStudent.isPresent()) {
             RosterStudent existingStudentObj = existingStudent.get();
             existingStudentObj.setRosterStatus(RosterStatus.ROSTER);
@@ -191,11 +191,14 @@ public class RosterStudentsController extends ApiController {
 
     @PreAuthorize("hasRole('ROLE_PROFESSOR')")
     @PostMapping("/updateCourseMembership")
-    public Job updateCourseMembership(@Parameter(name = "courseId", description = "Course ID") @RequestParam Long courseId) throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException {
-        Course course = courseRepository.findById(courseId).orElseThrow(() -> new EntityNotFoundException(Course.class, courseId));
-        if(course.getInstallationId() == null || course.getOrgName() == null){
+    public Job updateCourseMembership(
+            @Parameter(name = "courseId", description = "Course ID") @RequestParam Long courseId)
+            throws NoSuchAlgorithmException, InvalidKeySpecException, JsonProcessingException {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new EntityNotFoundException(Course.class, courseId));
+        if (course.getInstallationId() == null || course.getOrgName() == null) {
             throw new NoLinkedOrganizationException(course.getCourseName());
-        }else{
+        } else {
             UpdateOrgMembershipJob job = UpdateOrgMembershipJob.builder()
                     .rosterStudentRepository(rosterStudentRepository)
                     .organizationMemberService(organizationMemberService)
@@ -205,11 +208,12 @@ public class RosterStudentsController extends ApiController {
             return jobService.runAsJob(job);
         }
     }
-    
+
     @Operation(summary = "Link a Roster Student to a Github Account")
     @PreAuthorize("hasRole('ROLE_USER')")
     @PutMapping("/linkGitHub")
-    public ResponseEntity<String> linkGitHub(@Parameter(name = "rosterStudentId", description = "Roster Student to be linked to") @RequestParam Long rosterStudentId){
+    public ResponseEntity<String> linkGitHub(
+            @Parameter(name = "rosterStudentId", description = "Roster Student to be linked to") @RequestParam Long rosterStudentId) {
         User currentUser = currentUserService.getUser();
         RosterStudent rosterStudent = rosterStudentRepository.findById(rosterStudentId)
                 .orElseThrow(() -> new EntityNotFoundException(RosterStudent.class, rosterStudentId));
@@ -218,7 +222,7 @@ public class RosterStudentsController extends ApiController {
             throw new AccessDeniedException("User not authorized to link this roster student");
         }
 
-        if (rosterStudent.getGithubId() != 0 && rosterStudent.getGithubLogin() != null ) {
+        if (rosterStudent.getGithubId() != 0 && rosterStudent.getGithubLogin() != null) {
             return ResponseEntity.badRequest().body("This roster student is already linked to a GitHub account");
         }
 
@@ -231,7 +235,7 @@ public class RosterStudentsController extends ApiController {
     @Operation(summary = "Get Associated Roster Students with a User")
     @PreAuthorize("hasRole('ROLE_USER')")
     @GetMapping("/associatedRosterStudents")
-    public Iterable<RosterStudent> getAssociatedRosterStudents(){
+    public Iterable<RosterStudent> getAssociatedRosterStudents() {
         User currentUser = currentUserService.getUser();
         Iterable<RosterStudent> rosterStudents = rosterStudentRepository.findAllByUser((currentUser));
         return rosterStudents;
