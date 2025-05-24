@@ -11,6 +11,7 @@ import edu.ucsb.cs156.frontiers.repositories.CourseRepository;
 import edu.ucsb.cs156.frontiers.repositories.RosterStudentRepository;
 import edu.ucsb.cs156.frontiers.repositories.UserRepository;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,6 +23,7 @@ import java.util.Optional;
 @Tag(name = "Webhooks Controller")
 @RestController
 @RequestMapping("/api/webhooks")
+@Slf4j
 public class WebhookController {
 
 
@@ -41,23 +43,82 @@ public class WebhookController {
     */
     @PostMapping("/github")
     public ResponseEntity<String> createGitHubWebhook(@RequestBody JsonNode jsonBody) throws JsonProcessingException {
+        log.info("Received GitHub webhook: {}", jsonBody.toString());
 
-        if(jsonBody.has("action")){
-            if(jsonBody.get("action").asText().equals("member_added")){
-                String githubLogin = jsonBody.get("membership").get("user").get("login").asText();
-                String installationId = jsonBody.get("installation").get("id").asText();
-                Optional<Course> course = courseRepository.findByInstallationId(installationId);
-                if(course.isPresent()){
-                    Optional<RosterStudent> student = rosterStudentRepository.findByCourseAndGithubLogin(course.get(), githubLogin);
-                    if(student.isPresent()){
-                        RosterStudent updatedStudent = student.get();
-                        updatedStudent.setOrgStatus(OrgStatus.MEMBER);
-                        rosterStudentRepository.save(updatedStudent);
-                        return ResponseEntity.ok(updatedStudent.toString());
-                    }
-                }
-            }
+        if(!jsonBody.has("action")){
+            return ResponseEntity.ok().body("success");
         }
-        return  ResponseEntity.ok().body("success");
+        
+        String action = jsonBody.get("action").asText();
+        log.info("Webhook action: {}", action);
+        
+        // Early return if not an action we care about
+        if(!action.equals("member_added") && !action.equals("member_invited")) {
+            return ResponseEntity.ok().body("success");
+        }
+        
+        // Extract GitHub login based on payload structure
+        String githubLogin = null;
+        String installationId = null;
+        
+        // For member_added events, the structure is different
+        if (action.equals("member_added")) {
+            if (!jsonBody.has("membership") || 
+                !jsonBody.get("membership").has("user") || 
+                !jsonBody.get("membership").get("user").has("login") ||
+                !jsonBody.has("installation") || 
+                !jsonBody.get("installation").has("id")) {
+                return ResponseEntity.ok().body("success");
+            }
+            
+            githubLogin = jsonBody.get("membership").get("user").get("login").asText();
+            installationId = jsonBody.get("installation").get("id").asText();
+        } 
+        // For member_invited events, use the original structure
+        else { // must be "member_invited" based on earlier check
+            if (!jsonBody.has("user") || 
+                !jsonBody.get("user").has("login") || 
+                !jsonBody.has("installation") || 
+                !jsonBody.get("installation").has("id")) {
+                return ResponseEntity.ok().body("success");
+            }
+            
+            githubLogin = jsonBody.get("user").get("login").asText();
+            installationId = jsonBody.get("installation").get("id").asText();
+        }
+        
+        log.info("GitHub login: {}, Installation ID: {}", githubLogin, installationId);
+        
+        Optional<Course> course = courseRepository.findByInstallationId(installationId);
+        log.info("Course found: {}", course.isPresent());
+        
+        if(!course.isPresent()){
+            log.warn("No course found with installation ID: {}", installationId);
+            return ResponseEntity.ok().body("success");
+        }
+        
+        Optional<RosterStudent> student = rosterStudentRepository.findByCourseAndGithubLogin(course.get(), githubLogin);
+        log.info("Student found: {}", student.isPresent());
+        
+        if(!student.isPresent()){
+            log.warn("No student found with GitHub login: {} in course: {}", githubLogin, course.get().getCourseName());
+            return ResponseEntity.ok().body("success");
+        }
+        
+        RosterStudent updatedStudent = student.get();
+        log.info("Current student org status: {}", updatedStudent.getOrgStatus());
+        
+        // Update status based on action
+        if(action.equals("member_added")) {
+            updatedStudent.setOrgStatus(OrgStatus.MEMBER);
+            log.info("Setting status to MEMBER");
+        } else { // must be "member_invited" based on earlier check
+            updatedStudent.setOrgStatus(OrgStatus.INVITED);
+            log.info("Setting status to INVITED");
+        }
+        
+        rosterStudentRepository.save(updatedStudent);
+        log.info("Student saved with new org status: {}", updatedStudent.getOrgStatus());
+        return ResponseEntity.ok(updatedStudent.toString());
     }
 }
