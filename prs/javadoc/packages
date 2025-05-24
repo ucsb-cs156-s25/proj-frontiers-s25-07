@@ -1,6 +1,7 @@
 edu.ucsb.cs156.frontiers.enums
 edu.ucsb.cs156.frontiers.errors
 edu.ucsb.cs156.frontiers.repositories
+edu.ucsb.cs156.frontiers.startup
 edu.ucsb.cs156.frontiers.config
 edu.ucsb.cs156.frontiers.entities
 edu.ucsb.cs156.frontiers.jobs
