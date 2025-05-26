@@ -85,9 +85,9 @@ app:
 "
 ```
 
-Next, we'll fill in `.env`. Create a copy of it with:
+Next, we'll fill in `.env`. Create a copy of it from `.env.SAMPLE` with:
 ```bash
-cp .env.EXAMPLE .env
+cp .env.SAMPLE .env
 ```
 
 Fill in your Google secrets, from the article at the beginning. Additionally, fill in your Github Client ID and Client Secret, named `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, and `GITHUB_CLIENT_SECRET` respectively.
